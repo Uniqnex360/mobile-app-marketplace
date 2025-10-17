@@ -1,0 +1,74 @@
+.main {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+ 
+/* Sidebar styling */
+.sidebar {
+  width: 260px;
+  background: #1A73E8;
+  color: #fff;
+  height: 100vh;
+  flex-shrink: 0;
+  transition: transform 0.3s ease-in-out;
+}
+ 
+/* Content area */
+.content {
+  flex: 1;
+  width: 100%;
+  background: #f9f9fb;
+  padding: 20px;
+  overflow-y: auto;
+}
+ 
+/* Cards, charts, widgets */
+.card, .widget, .dashboard-section {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 20px;
+}
+ 
+/* Responsive behavior */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 220px;
+  }
+}
+ 
+@media (max-width: 768px) {
+  .main {
+    flex-direction: column;
+  }
+ 
+  .sidebar {
+    display: none; /* handled by hamburger */
+  }
+ 
+  .content {
+    width: 100%;
+    padding: 10px;
+  }
+ 
+  .filter-bar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #fff;
+  }
+ 
+  .dashboard-section, .chart, .card {
+    width: 100%;
+    margin: 0 auto 15px;
+  }
+}
+ 
+/* Ensure charts and grids scale properly */
+canvas, svg {
+  max-width: 100% !important;
+  height: auto !important;
+}

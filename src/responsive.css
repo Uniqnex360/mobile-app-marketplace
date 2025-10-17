@@ -1,0 +1,144 @@
+ 
+/* Reset and base styles */
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  font-family: 'Inter', sans-serif;
+  background-color: #fff;
+  overflow-x: hidden !important;
+}
+ 
+/* Universal sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+ 
+/* Main content layout */
+.container, .main, .content, .wrapper {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+}
+ 
+/* Filter bar always visible at top */
+.filter-bar {
+  width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid #eaeaea;
+  padding: 10px 15px;
+}
+ 
+/* Responsive images/media */
+img, video, iframe {
+  max-width: 100%;
+  height: auto;
+}
+ 
+/* Grid layouts */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+ 
+/* Text scaling */
+h1, h2, h3, h4, h5, h6, p, span {
+  word-wrap: break-word;
+}
+ 
+/* Button scaling */
+button {
+  font-size: clamp(12px, 2vw, 16px);
+  padding: clamp(6px, 1.2vw, 12px) clamp(10px, 2vw, 16px);
+  border: none;
+  border-radius: 6px;
+  background-color: #1A73E8;
+  color: #fff;
+}
+ 
+/* Desktop layout */
+@media (min-width: 1025px) {
+  .sidebar {
+    display: block;
+    width: 280px;
+  }
+  .content {
+    flex: 1;
+  }
+}
+ 
+/* Tablet layout */
+@media (max-width: 1024px) {
+  .sidebar {
+    width: 240px;
+  }
+}
+ 
+/* Mobile layout */
+@media (max-width: 768px) {
+  .sidebar {
+    display: none;
+  }
+  .content, .main {
+    width: 100%;
+    padding: 10px;
+  }
+  .card {
+    width: 100%;
+    margin-bottom: 10px;
+  }
+}
+.MuiBox-root,
+.MuiGrid-container,
+.MuiGrid-item {
+  max-width: 100% !important;
+  flex-basis: 100% !important;
+  box-sizing: border-box !important;
+  overflow-x: hidden !important;
+}
+ 
+/* Charts, cards, and data sections */
+.card,
+.MuiPaper-root,
+.MuiCard-root {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 auto 15px auto !important;
+}
+ 
+canvas, svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+ 
+ @media (max-width: 768px) {
+  .MuiDrawer-root,
+  .sidebar {
+    display: none !important;
+  }
+ 
+  .content {
+    width: 100% !important;
+    padding: 12px !important;
+    overflow-x: hidden;
+  }
+}
+/* Small devices */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.4rem;
+  }
+  p {
+    font-size: 0.9rem;
+  }
+  button {
+    width: 100%;
+    font-size: 1rem;
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "appId": "com.marketlynxe.desktop",
+  "productName": "Marketlynxe",
+  "files": [
+    "build/**/*",
+    "electron/**/*"
+  ],
+  "directories": {
+    "buildResources": "assets"
+  },
+  "win": {
+    "target": [
+      "portable"
+    ],
+    "icon": "assets/marketlynxe-icon.png"
+  }
+}
