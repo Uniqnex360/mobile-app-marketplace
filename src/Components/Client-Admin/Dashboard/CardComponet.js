@@ -1,39 +1,38 @@
 import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import { Box, Typography } from "@mui/material";
 import {
-  Card,
-  Grid,
-  CardContent,
-  Typography,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  IconButton,
-  Box,
-} from "@mui/material";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
-  Legend,
+  ResponsiveContainer,
+  Tooltip,
+  Label,
 } from "recharts";
-import CustomBarChart from "./CustomBarChart";
 import DottedCircleLoading from "../../Loading/DotLoading";
-import { format } from "date-fns";
-import DonutChart from "./DonutChart";
 import { formatCurrency } from "../../../utils/currencyFormatter";
-import { fetchMarketplaceList } from "../../../utils/marketplace";
-import { useMarketplace } from "../../../utils/MarketplaceProvider";
-
+const fontStyles = {
+  fontSize: "16px",
+  color: "#485E75",
+  fontFamily:
+    "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+};
+export const MARKETPLACE_COLORS = {
+  Amazon: "#7190f7",
+  Walmart: "#82ca9d ",
+  TikTok: "#8884d8",
+  Shopify: "#ffc658",
+  eBay: "#ff8042",
+  Tesco: "#0088fe",
+  OneShop: "#00c49f",
+  Wayfair: "#ffbb28",
+  HomeDepot: "#ff6b6b",
+  Lowes: "#a4de6c",
+  custom: "#ffa5a5",
+};
 const CardComponent = ({
   widgetData,
+  country,
   marketPlaceId,
   DateStartDate,
   DateEndDate,
@@ -42,113 +41,23 @@ const CardComponent = ({
   manufacturer_name,
 }) => {
   const [loading, setLoading] = useState(true);
-  const [order, setOrder] = useState({});
-  const [market, setMarket] = useState("");
-  const [shipping, setShipping] = useState({});
-  const [fulfillment, setFulfillment] = useState({});
-//   const [categories, setCategories] = useState([]);
   const [orderData, setOrderData] = useState([]);
   const [totalOrders, setTotalOrders] = useState(0);
-  const [filter, setFilter] = useState("all");
-  const [salesData, setSalesData] = useState([]);
-  const [chartOffset, setChartOffset] = useState(0);
-  const chartContainerRef = useRef(null);
   const lastFetchParamsRef = useRef(null);
-  const {categories,loading:marketplaceLoading,error}=useMarketplace()
-
   const userData = localStorage.getItem("user");
   let userIds = "";
-
   if (userData) {
     const data = JSON.parse(userData);
     userIds = data.id;
   }
-  const handleFilterChange = (event) => {
-    setFilter(event.target.value);
-  };
-
-  const handleScroll = (direction) => {
-    if (chartContainerRef.current) {
-      const containerWidth = chartContainerRef.current.offsetWidth;
-      const scrollAmount = containerWidth * 0.8; // Scroll 80% of the container width
-
-      if (direction === "left") {
-        chartContainerRef.current.scrollLeft -= scrollAmount;
-        setChartOffset((prevOffset) => Math.max(0, prevOffset - scrollAmount));
-      } else {
-        chartContainerRef.current.scrollLeft += scrollAmount;
-        setChartOffset((prevOffset) => prevOffset + scrollAmount);
-      }
-    }
-  };
-  
-//   useEffect(()=>{
-//     fetchMarketplaceListAPI()
-//   },[userIds])
-
-// const fetchMarketplaceListAPI = async () => {
-//     try {
-//       const categoryData = await fetchMarketplaceList(userIds,'Cardcomponent');
-//             setCategories(categoryData);
-
-//     } catch (error) {
-//       console.error("Error fetching marketplace list:", error);
-//     }
-//   };
   const fetchData = async () => {
     try {
       setLoading(true);
-
-      // Fetch marketplace categories
-      // const marketplaceResponse = await axios.get(
-      //     `${process.env.REACT_APP_IP}getMarketplaceList/`,
-      //     { params: { user_id: userIds } }
-      //   );
-      //   const categoryData = marketplaceResponse.data.data.map((item) => ({
-      //     id: item.id,
-      //     name: item.name,
-      //     imageUrl: item.image_url,
-
-      // }));
-    //   const categoryData = await fetchMarketplaceList(userIds);
-    //   setCategories(categoryData);
-
-      // Fetch sales analytics
-      const orderResponse = await axios.post(
-        `${process.env.REACT_APP_IP}salesAnalytics/`,
-        {
-          preset: widgetData,
-          marketplace_id: marketPlaceId.id,
-          date_range: filter,
-          start_date: DateStartDate,
-          end_date: DateEndDate,
-          user_id: userIds,
-          brand_id: brand_id,
-          product_id: product_id,
-          manufacturer_name: manufacturer_name,
-          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        }
-      );
-
-      if (orderResponse.data?.data) {
-        setOrder(orderResponse.data.data);
-
-        // Map the data to format it for the chart
-        const formattedData = orderResponse.data.data.order_days.map(
-          (item) => ({
-            date: new Date(item.date), // Convert date string to Date object
-            revenue: item.order_value,
-            orderCount: item.order_count, // Add order count
-          })
-        );
-
-        setSalesData(formattedData);
-      }
-
       const orderSam = await axios.get(
         `${process.env.REACT_APP_IP}ordersCountForDashboard/`,
         {
           params: {
+            country: country,
             preset: widgetData,
             marketplace_id: marketPlaceId.id,
             start_date: DateStartDate,
@@ -161,54 +70,20 @@ const CardComponent = ({
           },
         }
       );
-
       if (orderSam.data?.data) {
         const { total_order_count, ...marketplaces } = orderSam.data.data;
         setTotalOrders(total_order_count?.value || 0);
-
-        if (marketPlaceId.id === "all") {
-          const pieData = Object.entries(marketplaces).map(([name, data]) => {
-            let color;
-            if (name === "Amazon") color = "#0b3954";
-            else if (name === "Walmart") color = "#ff6663";
-            else if (name === "custom") color = "#9381ff";
-            else color = getRandomColor();
-
-            return {
-              name,
-              value: data?.count || 0,
-              percentage: parseFloat(data?.percentage || 0).toFixed(2),
-              color: color,
-              orderValue: data?.order_value || 0, // Bind orderValue here
-            };
-          });
-          setOrderData(pieData);
-        } else {
-          const marketplaceName = Object.keys(marketplaces)[0];
-          const marketplaceData = marketplaces[marketplaceName];
-
-          if (marketplaceData) {
-            console.log("000banu", marketplaceData);
-            let color = "#000000"; // Default color
-            if (marketplaceName === "Amazon") color = "#0b3954";
-            else if (marketplaceName === "Walmart") color = "#ff6663";
-            else if (marketplaceName === "custom") color = "#9381ff";
-
-            setOrderData([
-              {
-                name: marketplaceName,
-                value: marketplaceData.value || marketplaceData.count,
-                percentage: parseFloat(marketplaceData.percentage || 0).toFixed(
-                  2
-                ),
-                color: color,
-                orderValue: marketplaceData?.order_value || 0, // Bind orderValue here
-              },
-            ]);
-          } else {
-            setOrderData([]);
-          }
-        }
+        const pieData = Object.entries(marketplaces)
+          .filter(([name]) => name !== "total_order_count")
+          .map(([name, data]) => ({
+            name,
+            value: data.count || data.value||0,
+            percentage: parseFloat(data.percentage || 0),
+            color: MARKETPLACE_COLORS[name] || getDefaultColor(name),
+            orderValue: data.order_value || 0,
+          }))
+          .filter((item) => item.value > 0);
+        setOrderData(pieData);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
@@ -216,21 +91,30 @@ const CardComponent = ({
       setLoading(false);
     }
   };
-
+  const getDefaultColor = (name) => {
+    const defaultColors = [
+      "#FFD4A3",
+      "#B5EAD7",
+      "#FFDFD3",
+      "#E2F0CB",
+      "#C7CEEA",
+      
+    ];
+    const index = name.charCodeAt(0) % defaultColors.length;
+    return defaultColors[index];
+  };
   useEffect(() => {
     const currentParams = JSON.stringify({
       preset: widgetData,
+      country,
       marketplace_id: marketPlaceId?.id,
       start_date: DateStartDate,
       end_date: DateEndDate,
-      filter,
       brand_id,
       product_id,
       manufacturer_name,
       user_id: userIds,
     });
-
-    // Only fetch if params have changed
     if (lastFetchParamsRef.current !== currentParams) {
       lastFetchParamsRef.current = currentParams;
       fetchData();
@@ -240,180 +124,247 @@ const CardComponent = ({
     marketPlaceId?.id,
     DateStartDate,
     DateEndDate,
-    filter,
     brand_id,
     product_id,
     manufacturer_name,
-    JSON.stringify(product_id),
+    country,
   ]);
-
-  const getRandomColor = () => {
-    const letters = "0123456789ABCDEF";
-    let color = "#";
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
+  const CustomLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    name,
+    value,
+    percentage,
+  }) => {
+    const RADIAN = Math.PI / 180;
+    const radius = outerRadius + (outerRadius * 0.3)
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="#111827"
+        textAnchor={x > cx ? "start" : "end"}
+        dominantBaseline="central"
+        style={{
+          fontSize: "14px",
+          fontWeight: 500,
+          fontFamily: fontStyles.fontFamily,
+        }}
+      >
+        {" "}
+        {name}({value}){" "}
+      </text>
+    );
   };
-
-  if (loading||marketplaceLoading) {
+  const CustomPercentageLabel = ({
+    cx,
+    cy,
+    midAngle,
+    innerRadius,
+    outerRadius,
+    percentage,
+  }) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+    return (
+      <text
+        x={x}
+        y={y}
+        fill="white"
+        textAnchor="middle"
+        dominantBaseline="central"
+        style={{
+          fontSize: "12px",
+          fontWeight: 600,
+          fontFamily: fontStyles.fontFamily,
+        }}
+      >
+        {" "}
+        {percentage.toFixed(1)}%{" "}
+      </text>
+    );
+  };
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <Box
+          sx={{
+            backgroundColor: "white",
+            border: "1px solid #e0e0e0",
+            borderRadius: "8px",
+            padding: "12px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+          }}
+        >
+          {" "}
+          <Typography
+            sx={{ ...fontStyles, fontWeight: 600, fontSize: "14px", mb: 0.5 }}
+          >
+            {" "}
+            {data.name}{" "}
+          </Typography>{" "}
+          <Typography sx={{ ...fontStyles, fontSize: "12px" }}>
+            {" "}
+            Order Count: {data.value}{" "}
+          </Typography>{" "}
+          <Typography sx={{ ...fontStyles, fontSize: "12px" }}>
+            {" "}
+            Order Value: {formatCurrency(data.orderValue, country)}{" "}
+          </Typography>{" "}
+          <Typography sx={{ ...fontStyles, fontSize: "12px" }}>
+            {" "}
+            Percentage: {data.percentage.toFixed(1)}%{" "}
+          </Typography>{" "}
+        </Box>
+      );
+    }
+    return null;
+  };
+  if (loading) {
     return (
       <Box
         sx={{
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          height: "100vh",
+          minHeight: 400,
+          width: "100%",
         }}
       >
-        <Typography variant="h6">
-          <DottedCircleLoading />
-        </Typography>
+        {" "}
+        <DottedCircleLoading />{" "}
       </Box>
     );
   }
-
-  const formatDateTick = (tickItem) => {
-    return format(tickItem, "MMM dd"); // Format date as "Month Day" (e.g., "Jan 01")
-  };
-
   return (
-    <Box p={2}>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <Card
-            sx={{
-              mb: 2,
-              maxWidth: 600,
-              marginLeft: "-10px",
-              minHeight: 330,
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              border: "1px solid #ccc", // ✅ Adds the border
-              borderRadius: 2, // Optional: rounded corners
-              boxShadow: "none",
-            }}
-          >
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
+    <Box
+      sx={{
+        border: "1px solid #e0e0e0",
+        borderRadius: "8px",
+        padding: 3,
+        backgroundColor: "white",
+        minHeight: 400,
+      }}
+    >
+      {totalOrders > 0 && orderData.length > 0 && (
+
+
+      <Typography
+        variant="h6"
+        sx={{
+          ...fontStyles,
+          fontWeight: 600,
+          fontSize: "18px",
+          color: "#111827",
+          mb: 3,
+          textAlign: "center",
+        }}
+      >
+        Total Orders Distribution by Channel{" "}
+      </Typography>
+      )}
+
+      {totalOrders > 0 && orderData.length > 0 ? (
+        <ResponsiveContainer width="100%" height={350}>
+          {" "}
+          <PieChart>
+            {" "}
+            <Pie
+              data={orderData}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={orderData.length === 1 ? 80 : 100} 
+              label={orderData.length > 1 ? (props) => <CustomLabel {...props} /> : false}
+              labelLine={orderData.length > 1 ? { stroke: "#cccccc", strokeWidth: 1 } : false}
+            >
+              {" "}
+              {orderData.map((entry, index) => (
+                <Cell key={`cell-${index}`} fill={entry.color} />
+              ))}{" "}
+              <Label
+                value={totalOrders}
+                position="center"
+                style={{
+                  fontSize: orderData.length === 1 ? "24px" : "32px",
+                  fontWeight: "bold",
+                  fill: "#111827",
+                  fontFamily: fontStyles.fontFamily,
                 }}
-              >
-                <Typography
-                  variant="h6"
-                  gutterBottom
-                  sx={{ fontSize: "0.9rem", margin: 0 }}
-                >
-                  🛒 Total Orders
-                </Typography>
-                <Typography
-                  variant="h5"
-                  fontWeight="bold"
-                  sx={{ marginBottom: 0 }}
-                >
-                  {totalOrders}
-                </Typography>
-              </Box>
-
-              {totalOrders > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <PieChart>
-                    <Pie
-                      data={orderData}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={35}
-                      outerRadius={60}
-                      label={({ name }) => name}
-                    >
-                      {orderData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value, name, props) => {
-                        const { payload } = props;
-                        let additionalInfo = "";
-
-                        if (payload) {
-                          // Find the corresponding marketplace data
-                          const marketplaceData = orderData.find(
-                            (item) => item.name === payload.name
-                          );
-                          if (marketplaceData) {
-                            const orderValue = marketplaceData.orderValue || 0;
-                            additionalInfo = `
-                                                Order Count: ${
-                                                  marketplaceData.value
-                                                } |
-                                                Order Value: ${formatCurrency(
-                                                  orderValue
-                                                )}
-                                            `;
-                          }
-                        }
-
-                        return [
-                          additionalInfo, // Show additional info (Order Count & Value)
-                        ];
-                      }}
-                      contentStyle={{ fontSize: "14px" }}
-                    />
-                    <Legend
-                      formatter={(value, entry) => (
-                        <span
-                          style={{ fontSize: "0.8rem", color: entry.color }}
-                        >
-                          {value} ({entry.payload.percentage}%)
-                        </span>
-                      )}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              ) : (
-                <Box
-                  sx={{
+              />{" "}
+            </Pie>{" "}
+            {orderData.length > 1 && orderData.map((entry, index)  => (
+              <Pie
+                key={`percentage-${index}`}
+                data={[entry]}
+                dataKey="value"
+                cx="50%"
+                cy="50%"
+                outerRadius={100}
+                innerRadius={60}
+                startAngle={orderData
+                  .slice(0, index)
+                  .reduce(
+                    (sum, item) => sum + (item.percentage / 100) * 360,
+                    0
+                  )}
+                endAngle={orderData
+                  .slice(0, index + 1)
+                  .reduce(
+                    (sum, item) => sum + (item.percentage / 100) * 360,
+                    0
+                  )}
+                fill="none"
+                label={(props) => (
+                  <CustomPercentageLabel
+                    {...props}
+                    percentage={entry.percentage}
+                  />
+                )}
+                isAnimationActive={false}
+              />
+            ))}{" "}
+            <Tooltip content={<CustomTooltip />} />{" "}
+          </PieChart>{" "}
+        </ResponsiveContainer>
+      ) : (
+        <Box
+          sx={{
+            border: "1px solid #e0e0e0",
+                    borderRadius: "8px",
+                    padding: 3,
+                    backgroundColor: "white",
+                    minHeight: 400,
                     display: "flex",
                     justifyContent: "center",
                     alignItems: "center",
-                    height: 200,
-                  }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      textAlign: "center",
-                      fontSize: "1rem",
-                      fontWeight: "bold",
-                      color: "#888",
-                    }}
-                  >
-                    No total orders found
-                  </Typography>
-                </Box>
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        {/* Custom Bar Chart */}
-        {/* <Grid item xs={12} sm={6}>
-                    <CustomBarChart marketPlaceId={marketPlaceId} />
-                </Grid> */}
-
-        {/* <Grid item xs={12} sm={4}>
-                       
-                <DonutChart marketPlaceId={marketPlaceId}  DateStartDate={DateStartDate} DateEndDate={DateEndDate}/>
-                 
-                
-                        </Grid> */}
-      </Grid>
+          }}
+        >
+          {" "}
+          <Typography
+            variant="body2"
+            sx={{
+              textAlign: "center",
+              fontSize: "1rem",
+              fontWeight: "bold",
+              color: "#888",
+            }}
+          >
+            {" "}
+            No orders found{" "}
+          </Typography>{" "}
+        </Box>
+      )}{" "}
     </Box>
   );
 };
-
 export default CardComponent;

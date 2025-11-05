@@ -15,6 +15,8 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { Download, Delete } from "@mui/icons-material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -25,10 +27,11 @@ import { saveAs } from "file-saver";
 import { InsertDriveFile } from "@mui/icons-material";
 import DottedCircleLoading from "../../../Loading/DotLoading";
 import SkeletonTableMyProducts from "../MyProducts/ProductsLoading/MyProductLoading";
+import { getCurrencySymbol } from "../../../../utils/currencySymbol";
 dayjs.extend(utc);
 dayjs.extend(timezone);
-
 function PeriodComparission({
+  country,
   marketPlaceId,
   brand_id,
   product_id,
@@ -39,20 +42,27 @@ function PeriodComparission({
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
   const [loading, setLoading] = useState(false);
-
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.between("sm", "md"));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down("md"));
+   const formatCurrency = (value) => {
+    const currencySymbol = getCurrencySymbol(country);
+    return `${currencySymbol}${(value ?? 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
   };
-
   const handleClose = () => {
     setAnchorEl(null);
   };
-
   const handleDownloadCSV = async () => {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const userId = userData?.id || "";
-
       const response = await axios.post(
         `${process.env.REACT_APP_IP}exportPeriodWiseCSV/`,
         {
@@ -66,7 +76,6 @@ function PeriodComparission({
           responseType: "blob",
         }
       );
-
       const blob = new Blob([response.data], {
         type: "text/csv;charset=utf-8;",
       });
@@ -75,16 +84,15 @@ function PeriodComparission({
       console.error("CSV Download Error:", error);
     }
   };
-
   const handleDownloadXLS = async () => {
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const userId = userData?.id || "";
-
       const response = await axios.post(
         `${process.env.REACT_APP_IP}getPeriodWiseDataXl/`,
         {
           brand_id: brand_id,
+          country: country,
           product_id: product_id,
           manufacturer_name: manufacturer_name,
           fulfillment_channel: fulfillment_channel,
@@ -93,7 +101,6 @@ function PeriodComparission({
           responseType: "blob",
         }
       );
-
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
@@ -102,17 +109,16 @@ function PeriodComparission({
       console.error("XLS Download Error:", error);
     }
   };
-
   const fetchPeriodComparission = async () => {
     setLoading(true);
     try {
       const userData = JSON.parse(localStorage.getItem("user") || "{}");
       const userId = userData?.id || "";
-
       const response = await axios.post(
         `${process.env.REACT_APP_IP}getPeriodWiseData/`,
         {
           user_id: userId,
+          country: country,
           marketplace_id: marketPlaceId.id,
           brand_id: brand_id,
           product_id: product_id,
@@ -121,36 +127,27 @@ function PeriodComparission({
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
         }
       );
-          let responseData = response.data;
-       if (typeof responseData === "string") {
-      try {
-        // Step 2: Replace all occurrences of ": NaN" with ": null" to create valid JSON.
-        // We use a Regular Expression to be safe and not replace "NaN" if it appears in a string value.
-        const correctedJSONString = responseData.replace(/:\s*NaN/g, ":null");
-
-        // Step 3: Manually parse the now-valid JSON string.
-        responseData = JSON.parse(correctedJSONString);
-      } catch (e) {
-        console.error("Failed to parse corrected JSON string:", e);
-        // If parsing still fails, default to an empty object to prevent crashes.
-        responseData = {};
+      let responseData = response.data;
+      if (typeof responseData === "string") {
+        try {
+          const correctedJSONString = responseData.replace(/:\s*NaN/g, ":null");
+          responseData = JSON.parse(correctedJSONString);
+        } catch (e) {
+          console.error("Failed to parse corrected JSON string:", e);
+          responseData = {};
+        }
       }
-    }
-const periods = responseData || {};
-
+      const periods = responseData || {};
       const formattedData = Object.keys(periods)
         .filter((key) => periods[key]?.label)
         .map((key) => {
           const item = periods[key];
-
-          // Format as per UTC, but only take the date part
           const currentDateFrom = dayjs
             .utc(item.period.current.from)
             .format("MMM D");
           const currentDateTo = dayjs
             .utc(item.period.current.to)
             .format("MMM D, YYYY");
-
           return {
             period: item.label || "",
             dateRange: `${currentDateFrom} - ${currentDateTo}`,
@@ -174,9 +171,7 @@ const periods = responseData || {};
             marginDelta: item.margin?.delta || 0,
           };
         });
-
       setPeriodData(formattedData);
-      console.log("Formatted Period Data:", formattedData);
     } catch (error) {
       console.error("Error fetching metrics:", error);
       setPeriodData([]);
@@ -184,9 +179,10 @@ const periods = responseData || {};
       setLoading(false);
     }
   };
-
   let lastParamsRef = useRef("");
-
+  const API_TODAY = dayjs("02/09/2025", "DD/MM/YYYY")
+    .tz("US/Pacific")
+    .format("MMM D, YYYY");
   useEffect(() => {
     const currentParams = JSON.stringify({
       marketplace_id: marketPlaceId?.id,
@@ -194,26 +190,26 @@ const periods = responseData || {};
       product_id,
       manufacturer_name,
       fulfillment_channel,
+      country,
     });
-
     if (lastParamsRef.current !== currentParams) {
       lastParamsRef.current = currentParams;
       fetchPeriodComparission();
     }
   }, [
     marketPlaceId,
+    country,
     brand_id,
     product_id,
     manufacturer_name,
     fulfillment_channel,
   ]);
-
   return (
     <Paper
       elevation={2}
       sx={{
         borderRadius: 1,
-        width: "99%",
+        width: { xs: "100%", sm: "99%" },
         boxShadow: "none",
         border: "solid 1px #ddd",
       }}
@@ -221,10 +217,12 @@ const periods = responseData || {};
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
-          p: 2,
+          alignItems: { xs: "flex-start", sm: "center" },
+          p: { xs: 1.5, sm: 2 },
           borderBottom: "1px solid #eee",
+          gap: { xs: 1, sm: 0 },
         }}
       >
         <Box>
@@ -234,15 +232,16 @@ const periods = responseData || {};
             sx={{
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-              fontSize: "20px",
+              fontSize: { xs: "18px", sm: "20px" },
               fontWeight: 600,
+              mb: { xs: 0.5, sm: 1 },
             }}
           >
             Period Comparison
           </Typography>
           <Typography
             sx={{
-              fontSize: "14px",
+              fontSize: { xs: "12px", sm: "14px" },
               color: "#485E75",
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
@@ -250,7 +249,7 @@ const periods = responseData || {};
             variant="body2"
             color="text.secondary"
           >
-            {dayjs().tz("US/Pacific").format("MMM D, YYYY")}
+            {API_TODAY}
           </Typography>
         </Box>
         <IconButton
@@ -260,6 +259,7 @@ const periods = responseData || {};
           aria-expanded={open ? "true" : undefined}
           aria-haspopup="true"
           onClick={handleClick}
+          sx={{ alignSelf: { xs: "flex-end", sm: "center" } }}
         >
           <MoreVertIcon />
         </IconButton>
@@ -273,7 +273,7 @@ const periods = responseData || {};
           onClose={handleClose}
           PaperProps={{
             style: {
-              width: 200,
+              width: isMobile ? 180 : 200,
               borderRadius: 10,
               boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
             },
@@ -287,7 +287,7 @@ const periods = responseData || {};
             sx={{
               color: "#485E75",
               fontFamily: "'Nunito Sans', sans-serif",
-              fontSize: 14,
+              fontSize: { xs: 12, sm: 14 },
             }}
           >
             <ListItemIcon sx={{ color: "#485E75", minWidth: 36 }}>
@@ -297,7 +297,6 @@ const periods = responseData || {};
             </ListItemIcon>
             <ListItemText primary="Download CSV" />
           </MenuItem>
-
           <MenuItem
             onClick={() => {
               handleDownloadXLS();
@@ -306,7 +305,7 @@ const periods = responseData || {};
             sx={{
               color: "#485E75",
               fontFamily: "'Nunito Sans', sans-serif",
-              fontSize: 14,
+              fontSize: { xs: 12, sm: 14 },
             }}
           >
             <ListItemIcon sx={{ color: "#485E75", minWidth: 36 }}>
@@ -314,13 +313,12 @@ const periods = responseData || {};
             </ListItemIcon>
             <ListItemText primary="Download XLS" />
           </MenuItem>
-
           <MenuItem
             onClick={handleClose}
             sx={{
               color: "#485E75",
               fontFamily: "'Nunito Sans', sans-serif",
-              fontSize: 14,
+              fontSize: { xs: 12, sm: 14 },
             }}
           >
             <ListItemIcon sx={{ color: "#485E75", minWidth: 36 }}>
@@ -333,8 +331,9 @@ const periods = responseData || {};
       <TableContainer
         sx={{
           overflowX: "auto",
+          maxWidth: "100%",
           "&::-webkit-scrollbar": {
-            height: 4, // 🔽 Reduced from 4 to 2
+            height: 4,
           },
           "&::-webkit-scrollbar-thumb": {
             backgroundColor: "rgb(166, 183, 201)",
@@ -358,8 +357,7 @@ const periods = responseData || {};
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              minHeight: 300,
-
+              minHeight: { xs: 200, sm: 300 },
               width: "100%",
               height: "100%",
             }}
@@ -369,7 +367,12 @@ const periods = responseData || {};
             </Box>
           </Box>
         ) : (
-          <Table sx={{ minWidth: 1200 }} aria-label="period comparison table">
+          <Table
+            sx={{
+              minWidth: { xs: 800, sm: 1200 },
+            }}
+            aria-label="period comparison table"
+          >
             <TableHead>
               <TableRow>
                 {[
@@ -390,12 +393,14 @@ const periods = responseData || {};
                     key={label}
                     sx={{
                       fontWeight: 600,
-                      fontSize: 12,
-                      textAlign: idx === 0 ? "start" : "end", // Only 'Period' is left-aligned
+                      fontSize: { xs: 10, sm: 12 },
+                      textAlign: idx === 0 ? "start" : "end",
                       backgroundColor: "rgb(242, 245, 247)",
                       color: "#485E75",
                       fontFamily:
                         "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+                      padding: { xs: "8px 4px", sm: "16px" },
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {label}
@@ -403,121 +408,129 @@ const periods = responseData || {};
                 ))}
               </TableRow>
             </TableHead>
-
             <TableBody>
-              {periodData.map((row) => (
-                <TableRow key={row.period}>
-                  <TableCell
-                    sx={{
-                      fontSize: "14px",
-                      color: "#485E75",
-                      width: "145px",
-                      fontFamily:
-                        "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                    }}
-                  >
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        textAlign: "start",
-                        fontSize: "16px",
-                        color: "#13191F",
-                        fontFamily:
-                          "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                      }}
-                    >
-                      {row.period}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        textAlign: "start",
-                        fontSize: "14px",
-                        color: "#6b7280",
-                        fontFamily:
-                          "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                      }}
-                    >
-                      {row.period === "Yesterday"
-                        ? new Date(
-                            row.dateRange.split(" - ")[0] +
-                              ", " +
-                              row.dateRange.split(" - ")[1].split(", ")[1]
-                          ).toLocaleDateString("en-US", {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          })
-                        : row.dateRange}
-                    </Typography>
-                  </TableCell>
-
-                  <TableCell
-                    sx={{
-                      textAlign: "end",
-                      fontSize: "14px",
-                      color: "#485E75",
-                      fontFamily:
-                        "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                    }}
-                  >
-                    $
-                    {row.grossRevenue.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                    })}
-                  </TableCell>
-
-                  {[row.expenses, row.netProfit].map((val, i) => (
-                    <TableCell
-                      key={i}
-                      sx={{
-                        fontSize: "14px",
-                        color: "#485E75",
-                        fontFamily:
-                          "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                         textAlign: 'end', // Center-aligns the text
-                      }}
-                    >
-                      $
-                      {val.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                      })}
-                    </TableCell>
-                  ))}
-
-                  {[
-                    `${row.margin?.toFixed(2)}%`,
-                    `${row.roi?.toFixed(2)}%`,
-                    row.refunds.toLocaleString(),
-                    row.unitsSold.toLocaleString(),
-                    row.skuCount.toLocaleString(),
-                    row.pageViews.toLocaleString(),
-                    row.sessions.toLocaleString(),
-                    // row.unitsessions.toLocaleString(),
-                    `${row.unitsessions?.toFixed(2)}%`,
-                    // `${row.conversionRate?.toFixed(2)}%`,
-                  ].map((val, i) => (
-                    <TableCell
-                      key={i + 2}
-                      sx={{
-                        textAlign: "end",
-                        fontSize: "14px",
-                        color: "#485E75",
-                        fontFamily:
-                          "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                      }}
-                    >
-                      {val}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
+  {periodData.map((row) => (
+    <TableRow key={row.period}>
+      <TableCell
+        sx={{
+          fontSize: { xs: "12px", sm: "14px" },
+          color: "#485E75",
+          width: { xs: "120px", sm: "145px" },
+          fontFamily:
+            "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+          padding: { xs: "8px 4px", sm: "16px" },
+        }}
+      >
+        <Typography
+          variant="subtitle2"
+          sx={{
+            textAlign: "start",
+            fontSize: { xs: "14px", sm: "16px" },
+            color: "#13191F",
+            fontFamily:
+              "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+          }}
+        >
+          {row.period}
+        </Typography>
+        <Typography
+          variant="caption"
+          sx={{
+            textAlign: "start",
+            fontSize: { xs: "11px", sm: "14px" },
+            color: "#6b7280",
+            fontFamily:
+              "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+          }}
+        >
+          {row.period === "Yesterday"
+            ? new Date(
+                row.dateRange.split(" - ")[0] +
+                  ", " +
+                  row.dateRange.split(" - ")[1].split(", ")[1]
+              ).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })
+            : row.dateRange}
+        </Typography>
+      </TableCell>
+      
+      {/* Gross Revenue */}
+      <TableCell
+        sx={{
+          textAlign: "end",
+          fontSize: { xs: "12px", sm: "14px" },
+          color: "#485E75",
+          fontFamily:
+            "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+          padding: { xs: "8px 4px", sm: "16px" },
+        }}
+      >
+        {formatCurrency(row.grossRevenue)}
+      </TableCell>
+      
+      {/* Expenses */}
+      <TableCell
+        sx={{
+          fontSize: { xs: "12px", sm: "14px" },
+          color: "#485E75",
+          fontFamily:
+            "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+          textAlign: "end",
+          padding: { xs: "8px 4px", sm: "16px" },
+        }}
+      >
+        {formatCurrency(row.expenses)}
+      </TableCell>
+      
+      {/* Net Profit */}
+      <TableCell
+        sx={{
+          fontSize: { xs: "12px", sm: "14px" },
+          color: "#485E75",
+          fontFamily:
+            "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+          textAlign: "end",
+          padding: { xs: "8px 4px", sm: "16px" },
+        }}
+      >
+        {formatCurrency(row.netProfit)}
+      </TableCell>
+      
+      {/* Non-currency cells remain the same */}
+      {[
+        `${row.margin?.toFixed(2)}%`,
+        `${row.roi?.toFixed(2)}%`,
+        row.refunds.toLocaleString(),
+        row.unitsSold.toLocaleString(),
+        row.skuCount.toLocaleString(),
+        row.pageViews.toLocaleString(),
+        row.sessions.toLocaleString(),
+        `${row.unitsessions?.toFixed(2)}%`,
+      ].map((val, i) => (
+        <TableCell
+          key={i + 2}
+          sx={{
+            textAlign: "end",
+            fontSize: { xs: "12px", sm: "14px" },
+            color: "#485E75",
+            fontFamily:
+              "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+            padding: { xs: "8px 4px", sm: "16px" },
+          }}
+        >
+          {val}
+        </TableCell>
+      ))}
+    </TableRow>
+  ))}
+</TableBody>
           </Table>
         )}
       </TableContainer>
     </Paper>
   );
 }
-
 export default PeriodComparission;

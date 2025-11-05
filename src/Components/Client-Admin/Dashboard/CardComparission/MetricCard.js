@@ -12,6 +12,8 @@ import {
   Button,
   Container,
   Tooltip,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -19,9 +21,10 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import { styled } from "@mui/material/styles";
 import NotificationTooltip from "./NotificationTooltip";
-
 import { Delete } from "@mui/icons-material";
 import DottedCircleLoading from "../../../Loading/DotLoading";
+import { getCurrencySymbol } from "../../../../utils/currencySymbol";
+
 const CustomPopover = styled(Popover)(({ theme }) => ({
   "& .MuiPopover-paper": {
     backgroundColor: "white",
@@ -47,14 +50,8 @@ const formatterShort = new Intl.DateTimeFormat("en-US", {
   day: "2-digit",
   timeZone: "UTC",
 });
-const formatCurrency = (value) => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(value ?? 0);
-};
+
+
 function OrderInfoPopover({
   open,
   anchorEl,
@@ -63,6 +60,9 @@ function OrderInfoPopover({
   sponsored,
   total,
 }) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   return (
     <Box
       sx={{
@@ -87,7 +87,7 @@ function OrderInfoPopover({
         <Box
           sx={{
             p: 1,
-            width: "200px",
+            width: { xs: "160px", sm: "200px" },
             borderRadius: "8px",
             backgroundColor: "#fff",
           }}
@@ -100,8 +100,8 @@ function OrderInfoPopover({
               mb: 0.3,
             }}
           >
-            <Typography sx={{ fontSize: "12px" }}>Organic</Typography>
-            <Typography sx={{ fontSize: "12px" }}>{organic}</Typography>
+            <Typography sx={{ fontSize: { xs: "11px", sm: "12px" } }}>Organic</Typography>
+            <Typography sx={{ fontSize: { xs: "11px", sm: "12px" } }}>{organic}</Typography>
           </Box>
           <Box
             sx={{
@@ -111,8 +111,8 @@ function OrderInfoPopover({
               mb: 0.3,
             }}
           >
-            <Typography sx={{ fontSize: "12px" }}>Sponsored</Typography>
-            <Typography sx={{ fontSize: "12px" }}>0</Typography>
+            <Typography sx={{ fontSize: { xs: "11px", sm: "12px" } }}>Sponsored</Typography>
+            <Typography sx={{ fontSize: { xs: "11px", sm: "12px" } }}>0</Typography>
           </Box>
           <Box
             sx={{
@@ -121,10 +121,10 @@ function OrderInfoPopover({
               alignItems: "center",
             }}
           >
-            <Typography sx={{ fontSize: "14px", fontWeight: "bold", mb: 0.5 }}>
+            <Typography sx={{ fontSize: { xs: "13px", sm: "14px" }, fontWeight: "bold", mb: 0.5 }}>
               Total Orders
             </Typography>
-            <Typography sx={{ fontWeight: "bold", fontSize: "14px" }}>
+            <Typography sx={{ fontWeight: "bold", fontSize: { xs: "13px", sm: "14px" } }}>
               {organic}
             </Typography>
           </Box>
@@ -133,9 +133,16 @@ function OrderInfoPopover({
     </Box>
   );
 }
-
+const formatCurrency = (value,country) => {
+    const currencySymbol = getCurrencySymbol(country);
+    return `${currencySymbol}${(value ?? 0).toLocaleString(undefined, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
 const PerformanceCard = ({
   title,
+  country,
   date,
   previous,
   netPrevious,
@@ -170,11 +177,19 @@ const PerformanceCard = ({
   const [anchorElNetProfit, setAnchorElNetProfit] = useState(null);
   const [openNetProfitPopover, setOpenNetProfitPopover] = useState(false);
 
+  // Add responsive hooks
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
+
   const openOrder = Boolean(anchorElOrders);
-  const previousGrossRevenue = parseFloat(previous);
+  const previousGrossRevenue = parseFloat(
+  previous?.replace(/[^\d.-]/g, "") || "0"
+);
   const currentGrossRevenue = parseFloat(
-    grossRevenue?.replace("$", "").replace(",", "")
-  );
+  grossRevenue?.replace(/[^\d.-]/g, "") || "0"
+);
   const grossRevenueDiff = currentGrossRevenue - previousGrossRevenue;
   const grossRevenuePercentageChange =
     !isNaN(previousGrossRevenue) && previousGrossRevenue !== 0
@@ -182,11 +197,11 @@ const PerformanceCard = ({
       : 0;
 
   const netPreviousValue = parseFloat(
-    netPrevious?.replace("$", "").replace(",", "")
-  );
+  netPrevious?.replace(/[^\d.-]/g, "") || "0"
+);
   const currentNetProfitValue = parseFloat(
-    netProfit?.replace("$", "").replace(",", "")
-  );
+  netProfit?.replace(/[^\d.-]/g, "") || "0"
+);
   const netProfitDiff = currentNetProfitValue - netPreviousValue;
   const netProfitPercentageChange =
     !isNaN(netPreviousValue) && netPreviousValue !== 0
@@ -244,7 +259,6 @@ const PerformanceCard = ({
   };
 
   const handleOpenGrossRevenuePopover = (event) => {
-    console.log("llllll", dateRange);
     setAnchorElGrossRevenue(event.currentTarget);
     setOpenGrossRevenuePopover(true);
   };
@@ -264,6 +278,7 @@ const PerformanceCard = ({
     setAnchorElNetProfit(null);
   };
 
+
   const formatDate = (dateString) => {
     if (!dateString) return "";
     const date = new Date(dateString);
@@ -278,7 +293,7 @@ const PerformanceCard = ({
       <Typography
         variant="caption"
         sx={{
-          fontSize: "14px",
+          fontSize: { xs: "12px", sm: "14px" },
           color: isNegative ? "error.main" : "success.main",
           display: "flex",
           alignItems: "center",
@@ -286,10 +301,10 @@ const PerformanceCard = ({
       >
         {isNegative ? (
           <ArrowUpwardIcon
-            sx={{ fontSize: "14px", color: "rgb(51, 204, 153)" }}
+            sx={{ fontSize: { xs: "12px", sm: "14px" }, color: "rgb(51, 204, 153)" }}
           />
         ) : (
-          <ArrowDownwardIcon sx={{ fontSize: "14px", color: "red" }} />
+          <ArrowDownwardIcon sx={{ fontSize: { xs: "12px", sm: "14px" }, color: "red" }} />
         )}
         {value}
       </Typography>
@@ -297,11 +312,11 @@ const PerformanceCard = ({
   };
 
   return (
-    <Box sx={{ width: "100%", marginTop: "10px" }}>
+    <Box sx={{ width: "100%", marginTop: { xs: "5px", sm: "10px" } }}>
       <Card
         sx={{ border: "1px solid #e0e0e0", fontSize: "14px", width: "100%" }}
       >
-        <CardContent>
+        <CardContent sx={{ p: { xs: 1.5, sm: 2 }, '&:last-child': { pb: { xs: 1.5, sm: 2 } } }}>
           <Box
             sx={{
               display: "flex",
@@ -313,7 +328,7 @@ const PerformanceCard = ({
             <Typography
               variant="h6"
               sx={{
-                fontSize: "20px",
+                fontSize: { xs: "16px", sm: "18px", md: "20px" },
                 color: "#13191F",
                 fontFamily: "'Nunito Sans', sans-serif",
                 fontWeight: 600,
@@ -326,7 +341,7 @@ const PerformanceCard = ({
               size="small"
               onClick={handleOpenOptionsPopover}
             >
-              <MoreVertIcon />
+              <MoreVertIcon sx={{ fontSize: { xs: "20px", sm: "24px" } }} />
             </IconButton>
             <Popover
               open={openOptionsPopover}
@@ -341,14 +356,14 @@ const PerformanceCard = ({
                     display: "flex",
                     alignItems: "center",
                     gap: 1,
-                    fontSize: "14px",
+                    fontSize: { xs: "12px", sm: "14px" },
                     color: "#485E75",
                     fontFamily:
                       "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
                   }}
                 >
                   <Delete sx={{ color: "rgb(72, 94, 117)" }} fontSize="small" />
-                  <Typography>Remove</Typography>
+                  <Typography sx={{ fontSize: { xs: "12px", sm: "14px" } }}>Remove</Typography>
                 </Box>
               </Box>
             </Popover>
@@ -359,7 +374,7 @@ const PerformanceCard = ({
             color="text.secondary"
             sx={{
               fontFamily: "'Nunito Sans', sans-serif",
-              fontSize: "14px",
+              fontSize: { xs: "12px", sm: "14px" },
               mb: 1,
             }}
           >
@@ -367,11 +382,11 @@ const PerformanceCard = ({
           </Typography>
 
           {/* Gross Revenue and Expenses */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1, flexWrap: { xs: 'wrap', sm: 'nowrap' }, gap: { xs: 1, sm: 0 } }}>
+            <Box sx={{ display: "flex", flexDirection: "column", flex: 1 }}>
               <Typography
                 sx={{
-                  fontSize: "14px",
+                  fontSize: { xs: "12px", sm: "14px" },
                   fontFamily: "'Nunito Sans', sans-serif",
                   color: "#485E75",
                 }}
@@ -388,7 +403,7 @@ const PerformanceCard = ({
               >
                 <Typography
                   sx={{
-                    fontSize: "24px",
+                    fontSize: { xs: "20px", sm: "22px", md: "24px" },
                     fontFamily: "'Nunito Sans', sans-serif",
                     cursor: "pointer",
                   }}
@@ -400,7 +415,7 @@ const PerformanceCard = ({
                     <Box sx={{ display: "flex", alignItems: "center" }}>
                       <Typography
                         sx={{
-                          fontSize: "12px",
+                          fontSize: { xs: "11px", sm: "12px" },
                           fontFamily: "'Nunito Sans', sans-serif",
                           color:
                             grossRevenuePercentageChange > 0
@@ -420,14 +435,14 @@ const PerformanceCard = ({
                           {grossRevenuePercentageChange > 0 ? (
                             <ArrowUpwardIcon
                               sx={{
-                                fontSize: 14,
+                                fontSize: { xs: 12, sm: 14 },
                                 color: "rgb(51, 204, 153)",
                                 mr: 0.5,
                               }}
                             />
                           ) : grossRevenuePercentageChange < 0 ? (
                             <ArrowDownwardIcon
-                              sx={{ fontSize: 14, color: "red", mr: 0.5 }}
+                              sx={{ fontSize: { xs: 12, sm: 14 }, color: "red", mr: 0.5 }}
                             />
                           ) : (
                             "N/A"
@@ -451,11 +466,11 @@ const PerformanceCard = ({
                 <Typography
                   sx={{
                     p: 2,
-                    fontSize: "14px",
+                    fontSize: { xs: "12px", sm: "14px" },
                     borderRadius: "6px",
                     boxShadow: "none",
                     border: "1px solid rgb(161, 173, 184)",
-                    width: "300px",
+                    width: { xs: "250px", sm: "300px" },
                     color: "#485E75",
                   }}
                 >
@@ -463,7 +478,7 @@ const PerformanceCard = ({
                     sx={{
                       color: "#121212",
                       fontWeight: "bold",
-                      fontSize: "16px",
+                      fontSize: { xs: "14px", sm: "16px" },
                     }}
                   >
                     Current vs Previous Period
@@ -495,7 +510,7 @@ const PerformanceCard = ({
                     <span
                       style={{
                         fontWeight: "bold",
-                        fontSize: "16px",
+                        fontSize: isMobile ? "14px" : "16px",
                         color: "#121212",
                         textAlign: "left",
                       }}
@@ -505,37 +520,27 @@ const PerformanceCard = ({
                     <span
                       style={{
                         fontWeight: "bold",
-                        fontSize: "16px",
+                        fontSize: isMobile ? "14px" : "16px",
                         color: "#121212",
                         textAlign: "right",
                       }}
                     >
                       {(() => {
                         const current = parseFloat(
-                          grossRevenue?.replace("$", "").replace(/,/g, "") ||
-                            "0"
-                        );
-                        const prev = parseFloat(previous || "0");
+  grossRevenue?.replace(/[^\d.-]/g, "") || "0"
+);
+                        const prev = parseFloat(previous?.replace(/[^\d.-]/g, "") || "0");
+
                         const value = current - prev;
                         return formatCurrency(value);
                       })()}
                     </span>
                   </div>
                 </Typography>
-
-                {/* <Typography sx={{ p: 1 }}>
-              Current vs Previous Period
-              <br />
-              {date ? formatDate(date) : dateRange} : {grossRevenue}
-              <br />
-              {date ? formatDate(new Date(new Date(date).setDate(new Date(date).getDate() - 1))) : 'Previous Period'} : ${previous}
-              <br />
-              Change: ${parseFloat(grossRevenue?.replace('$', '').replace(',', '')) - parseFloat(previous || '0')}
-            </Typography> */}
               </Popover>
               <Typography
                 sx={{
-                  fontSize: "12px",
+                  fontSize: { xs: "11px", sm: "12px" },
                   color: grossRevenueChange?.includes("-")
                     ? "error.main"
                     : "success.main",
@@ -549,11 +554,12 @@ const PerformanceCard = ({
                 textAlign: "right",
                 display: "flex",
                 flexDirection: "column",
+                flex: 1,
               }}
             >
               <Typography
                 sx={{
-                  fontSize: "14px",
+                  fontSize: { xs: "12px", sm: "14px" },
                   color: "#485E75",
                   fontFamily: "'Nunito Sans', sans-serif",
                 }}
@@ -562,7 +568,7 @@ const PerformanceCard = ({
               </Typography>
               <Typography
                 sx={{
-                  fontSize: "18px",
+                  fontSize: { xs: "16px", sm: "18px" },
                   fontFamily: "'Nunito Sans', sans-serif",
                 }}
               >
@@ -574,23 +580,25 @@ const PerformanceCard = ({
           <Divider sx={{ mb: 1 }} />
 
           {/* Net Profit + Margin */}
-          <Box sx={{ backgroundColor: "rgb(242, 245, 247)" }}>
+          <Box sx={{ backgroundColor: "rgb(242, 245, 247)", borderRadius: "4px" }}>
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
                 mb: 1,
-                px: 1,
-                py: 2,
+                px: { xs: 1, sm: 1 },
+                py: { xs: 1.5, sm: 2 },
                 backgroundColor: "rgb(242, 245, 247)",
+                flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                gap: { xs: 1, sm: 0 }
               }}
             >
-              <Box>
+              <Box sx={{ flex: 1 }}>
                 <Typography
                   sx={{
                     fontFamily: "'Nunito Sans', sans-serif",
-                    fontSize: "14px",
+                    fontSize: { xs: "12px", sm: "14px" },
                     color: "#485E75",
                   }}
                 >
@@ -607,7 +615,7 @@ const PerformanceCard = ({
                   <Typography
                     variant="h5"
                     sx={{
-                      fontSize: "24px",
+                      fontSize: { xs: "20px", sm: "22px", md: "24px" },
                       fontFamily: "'Nunito Sans', sans-serif",
                       cursor: "pointer",
                     }}
@@ -620,7 +628,7 @@ const PerformanceCard = ({
                     >
                       <Typography
                         sx={{
-                          fontSize: "12px",
+                          fontSize: { xs: "11px", sm: "12px" },
                           fontFamily: "'Nunito Sans', sans-serif",
                           color:
                             netProfitPercentageChange > 0
@@ -638,14 +646,14 @@ const PerformanceCard = ({
                           {netProfitPercentageChange > 0 ? (
                             <ArrowUpwardIcon
                               sx={{
-                                fontSize: 14,
+                                fontSize: { xs: 12, sm: 14 },
                                 color: "rgb(51, 204, 153)",
                                 mr: 0.5,
                               }}
                             />
                           ) : netProfitPercentageChange < 0 ? (
                             <ArrowDownwardIcon
-                              sx={{ fontSize: 14, color: "red", mr: 0.5 }}
+                              sx={{ fontSize: { xs: 12, sm: 14 }, color: "red", mr: 0.5 }}
                             />
                           ) : (
                             "N/A"
@@ -668,11 +676,11 @@ const PerformanceCard = ({
                   <Typography
                     sx={{
                       p: 2,
-                      fontSize: "14px",
+                      fontSize: { xs: "12px", sm: "14px" },
                       borderRadius: "6px",
                       boxShadow: "none",
                       border: "1px solid rgb(161, 173, 184)",
-                      width: "300px",
+                      width: { xs: "250px", sm: "300px" },
                       color: "#485E75",
                     }}
                   >
@@ -680,7 +688,7 @@ const PerformanceCard = ({
                       sx={{
                         color: "#121212",
                         fontWeight: "bold",
-                        fontSize: "16px",
+                        fontSize: { xs: "14px", sm: "16px" },
                       }}
                     >
                       Current vs Previous Period
@@ -718,7 +726,7 @@ const PerformanceCard = ({
                       <span
                         style={{
                           fontWeight: "bold",
-                          fontSize: "16px",
+                          fontSize: isMobile ? "14px" : "16px",
                           color: "#121212",
                           textAlign: "left",
                         }}
@@ -728,19 +736,18 @@ const PerformanceCard = ({
                       <span
                         style={{
                           fontWeight: "bold",
-                          fontSize: "16px",
+                          fontSize: isMobile ? "14px" : "16px",
                           color: "#121212",
                           textAlign: "right",
                         }}
                       >
                         {(() => {
                           const profit = parseFloat(
-                            netProfit?.replace("$", "").replace(/,/g, "") || "0"
-                          );
+  netProfit?.replace(/[^\d.-]/g, "") || "0"
+);
                           const previous = parseFloat(
-                            netPrevious?.replace("$", "").replace(/,/g, "") ||
-                              "0"
-                          );
+  netPrevious?.replace(/[^\d.-]/g, "") || "0"
+);
                           const difference = profit - previous;
                           return formatCurrency(difference);
                         })()}
@@ -749,10 +756,10 @@ const PerformanceCard = ({
                   </Typography>
                 </Popover>
               </Box>
-              <Box sx={{ textAlign: "right" }}>
+              <Box sx={{ textAlign: "right", flex: 1 }}>
                 <Typography
                   sx={{
-                    fontSize: "14px",
+                    fontSize: { xs: "12px", sm: "14px" },
                     fontFamily: "'Nunito Sans', sans-serif",
                     color: "#485E75",
                   }}
@@ -761,7 +768,7 @@ const PerformanceCard = ({
                 </Typography>
                 <Typography
                   sx={{
-                    fontSize: "18px",
+                    fontSize: { xs: "16px", sm: "18px" },
                     fontFamily: "'Nunito Sans', sans-serif",
                   }}
                 >
@@ -787,8 +794,7 @@ const PerformanceCard = ({
                       [`& .MuiTooltip-tooltip`]: {
                         backgroundColor: "transparent",
                         boxShadow: "3",
-                        // border: '1px solid #121212',
-                        color: "#000", // or your preferred text color
+                        color: "#000",
                         padding: 0,
                       },
                     },
@@ -798,7 +804,7 @@ const PerformanceCard = ({
                     size="small"
                     sx={{
                       mt: 0.5,
-                      fontSize: "14px",
+                      fontSize: { xs: "12px", sm: "14px" },
                       textTransform: "capitalize",
                       fontFamily: "'Nunito Sans', sans-serif",
                       padding: 0,
@@ -817,8 +823,10 @@ const PerformanceCard = ({
               justifyContent: "space-between",
               fontSize: "14px",
               fontFamily: "'Nunito Sans', sans-serif",
-              px: 2,
+              px: { xs: 0, sm: 1, md: 2 },
               width: "100%",
+              flexDirection: { xs: 'row', sm: 'row' },
+              gap: { xs: 1, sm: 0 }
             }}
           >
             {[
@@ -853,34 +861,24 @@ const PerformanceCard = ({
                 <Box
                   key={label}
                   sx={{
-                    paddingRight: "20px",
+                    paddingRight: { xs: "0px", sm: "10px", md: "20px" },
                     flex: 1,
-                    textAlign:
-                      label === "Orders"
-                        ? "left"
-                        : label === "Units Sold"
-                        ? "center"
-                        : "right",
+                    textAlign: "center",
                   }}
                 >
                   <Typography
                     variant="subtitle2"
                     sx={{
                       color: "#485E75",
-                      fontSize: "14px",
+                      fontSize: { xs: "11px", sm: "12px", md: "14px" },
                       fontFamily: "'Nunito Sans', sans-serif",
                       display: "flex",
-                      justifyContent:
-                        label === "Orders"
-                          ? "flex-start"
-                          : label === "Units Sold"
-                          ? "center"
-                          : "end",
+                      justifyContent: "center",
                       alignItems: "center",
                       gap: "4px",
                     }}
                   >
-                    {label}
+                    {isMobile ? label.split(' ')[0] : label}
                     {label === "Orders" && (
                       <Box
                         aria-owns={
@@ -893,7 +891,7 @@ const PerformanceCard = ({
                         onMouseLeave={handleClose}
                       >
                         <InfoOutlinedIcon
-                          sx={{ fontSize: "16px", cursor: "pointer" }}
+                          sx={{ fontSize: { xs: "14px", sm: "16px" }, cursor: "pointer" }}
                         />
                       </Box>
                     )}
@@ -901,7 +899,7 @@ const PerformanceCard = ({
 
                   <Typography
                     sx={{
-                      fontSize: "18px",
+                      fontSize: { xs: "16px", sm: "18px" },
                       fontFamily: "'Nunito Sans', sans-serif",
                     }}
                   >
@@ -942,6 +940,7 @@ const MetricCard = ({
   startDate,
   endDate,
   widgetData,
+  country,
   marketPlaceId,
   brand_id,
   product_id,
@@ -953,12 +952,13 @@ const MetricCard = ({
   const [metricsData, setMetricsData] = useState(null);
   const [loading, setLoading] = useState(false);
   let lastParamsRef = useRef("");
-
+  
   useEffect(() => {
     const currentParams = JSON.stringify({
       preset: widgetData,
       marketplace_id: marketPlaceId?.id,
       brand_id,
+      country,
       product_id,
       manufacturer_name,
       fulfillment_channel,
@@ -974,6 +974,7 @@ const MetricCard = ({
     widgetData,
     marketPlaceId,
     brand_id,
+    country,
     product_id,
     manufacturer_name,
     fulfillment_channel,
@@ -987,6 +988,7 @@ const MetricCard = ({
       const response = await axios.post(
         `${process.env.REACT_APP_IP}getPeriodWiseDataCustom/`,
         {
+          country: country,
           preset: widgetData,
           marketplace_id: marketPlaceId.id,
           brand_id: brand_id,
@@ -1001,174 +1003,190 @@ const MetricCard = ({
 
       const data = response.data;
 
-      setMetricsData(response.data); // update state with data
+      setMetricsData(response.data);
     } catch (error) {
-      console.error("Error fetching metrics:", error); // handle error
+      console.error("Error fetching metrics:", error);
     } finally {
       setLoading(false);
     }
   };
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(value ?? 0);
+
+  const transformData = (data,country) => {
+  if (!data) return [];
+
+  const safeFormatDate = (dateString, formatter) => {
+    try {
+      return dateString ? formatter.format(new Date(dateString)) : "";
+    } catch (e) {
+      console.warn("Date formatting error:", e);
+      return "";
+    }
   };
-  const transformData = (data) => {
-    if (!data) return [];
 
-    // Helper function to safely format dates
-    const safeFormatDate = (dateString, formatter) => {
-      try {
-        return dateString ? formatter.format(new Date(dateString)) : "";
-      } catch (e) {
-        console.warn("Date formatting error:", e);
-        return "";
-      }
-    };
-
-    // Helper function to safely access nested properties
-    const safeGet = (obj, path, defaultValue = 0) => {
-      try {
-        return (
-          path.split(".").reduce((acc, part) => acc && acc[part], obj) ??
-          defaultValue
-        );
-      } catch (e) {
-        return defaultValue;
-      }
-    };
-
-    const periods = ["today", "yesterday", "last7Days", "custom"];
-
-    return periods.reduce((acc, period) => {
-      if (!data[period]) return acc;
-
-      const periodData = data[period];
-
-      try {
-        const getLocal = (range, key, fallbackKey = key) =>
-          range?.[key] || range?.[fallbackKey];
-
-        const cardData = {
-          title:
-            period === "last7Days"
-              ? "Last 7 Days"
-              : period.charAt(0).toUpperCase() + period.slice(1),
-
-          // Use from_local / to_local with fallback to from / to
-          dateRange: periodData.dateRanges?.current
-            ? `${safeFormatDate(
-                getLocal(periodData.dateRanges.current, "from_local", "from"),
-                formatterLong
-              )} - ${safeFormatDate(
-                getLocal(periodData.dateRanges.current, "to_local", "to"),
-                formatterLong
-              )}`
-            : "",
-
-          dateRangePrev: periodData.dateRanges?.previous
-            ? `${safeFormatDate(
-                getLocal(periodData.dateRanges.previous, "from_local", "from"),
-                formatterLong
-              )} - ${safeFormatDate(
-                getLocal(periodData.dateRanges.previous, "to_local", "to"),
-                formatterLong
-              )}`
-            : "",
-
-          dateRangeFormat: periodData.dateRanges?.current
-            ? `${safeFormatDate(
-                getLocal(periodData.dateRanges.current, "from_local", "from"),
-                formatterShort
-              )} - ${safeFormatDate(
-                getLocal(periodData.dateRanges.current, "to_local", "to"),
-                formatterShort
-              )}`
-            : "",
-
-          dateRangePrevFormat: periodData.dateRanges?.previous
-            ? `${safeFormatDate(
-                getLocal(periodData.dateRanges.previous, "from_local", "from"),
-                formatterShort
-              )} - ${safeFormatDate(
-                getLocal(periodData.dateRanges.previous, "to_local", "to"),
-                formatterShort
-              )}`
-            : "",
-
-          // Updated currency formatting with commas
-          grossRevenue: formatCurrency(
-            safeGet(periodData, "summary.grossRevenue.current", 0)
-          ),
-
-          expenses: `-${formatCurrency(
-            safeGet(periodData, "summary.expenses.current", 0)
-          )}`,
-
-          netProfit: formatCurrency(
-            safeGet(periodData, "summary.netProfit.current", 0)
-          ),
-
-          netPrevious: formatCurrency(
-            safeGet(periodData, "summary.netProfit.previous", 0)
-          ),
-
-          // Margin stays the same (percentage, no commas needed)
-          margin: `${safeGet(periodData, "summary.margin.current", 0).toFixed(
-            2
-          )}%`,
-
-          // These stay the same (not currency)
-          orders: safeGet(periodData, "summary.orders.current", 0),
-          unitsSold: safeGet(periodData, "summary.unitsSold.current", 0),
-          refunds: safeGet(periodData, "summary.refunds.current", 0),
-          previous: safeGet(periodData, "summary.grossRevenue.previous", 0),
-
-          // Updated revenue change formatting
-          revenueChange: (() => {
-            const delta = safeGet(periodData, "summary.grossRevenue.delta", 0);
-            const sign = delta >= 0 ? "+" : "";
-            return `${sign}${formatCurrency(Math.abs(delta))}`;
-          })(),
-
-          netProfitCalculation: periodData.netProfitCalculation || {},
-        };
-
-        acc.push(cardData);
-      } catch (error) {
-        console.error(`Error processing ${period} data:`, error);
-      }
-
-      return acc;
-    }, []);
+  const safeGet = (obj, path, defaultValue = 0) => {
+    try {
+      return (
+        path.split(".").reduce((acc, part) => acc && acc[part], obj) ??
+        defaultValue
+      );
+    } catch (e) {
+      return defaultValue;
+    }
   };
-  const processedData = metricsData ? transformData(metricsData) : [];
+
+  const periods = ["today", "yesterday", "last7Days", "custom"];
+
+  return periods.reduce((acc, period) => {
+    if (!data[period]) return acc;
+
+    const periodData = data[period];
+
+    try {
+      const getLocal = (range, key, fallbackKey = key) =>
+        range?.[key] || range?.[fallbackKey];
+
+      const cardData = {
+        title:
+          period === "last7Days"
+            ? "Last 7 Days"
+            : period.charAt(0).toUpperCase() + period.slice(1),
+
+        dateRange: periodData.dateRanges?.current
+          ? `${safeFormatDate(
+              getLocal(periodData.dateRanges.current, "from_local", "from"),
+              formatterLong
+            )} - ${safeFormatDate(
+              getLocal(periodData.dateRanges.current, "to_local", "to"),
+              formatterLong
+            )}`
+          : "",
+
+        dateRangePrev: periodData.dateRanges?.previous
+          ? `${safeFormatDate(
+              getLocal(periodData.dateRanges.previous, "from_local", "from"),
+              formatterLong
+            )} - ${safeFormatDate(
+              getLocal(periodData.dateRanges.previous, "to_local", "to"),
+              formatterLong
+            )}`
+          : "",
+
+        dateRangeFormat: periodData.dateRanges?.current
+          ? `${safeFormatDate(
+              getLocal(periodData.dateRanges.current, "from_local", "from"),
+              formatterShort
+            )} - ${safeFormatDate(
+              getLocal(periodData.dateRanges.current, "to_local", "to"),
+              formatterShort
+            )}`
+          : "",
+
+        dateRangePrevFormat: periodData.dateRanges?.previous
+          ? `${safeFormatDate(
+              getLocal(periodData.dateRanges.previous, "from_local", "from"),
+              formatterShort
+            )} - ${safeFormatDate(
+              getLocal(periodData.dateRanges.previous, "to_local", "to"),
+              formatterShort
+            )}`
+          : "",
+
+        grossRevenue: formatCurrency(
+          safeGet(periodData, "summary.grossRevenue.current", 0),
+          country // Pass country parameter
+        ),
+
+        expenses: `-${formatCurrency(
+          safeGet(periodData, "summary.expenses.current", 0),
+          country // Pass country parameter
+        )}`,
+
+        netProfit: formatCurrency(
+          safeGet(periodData, "summary.netProfit.current", 0),
+          country // Pass country parameter
+        ),
+
+        netPrevious: formatCurrency(
+          safeGet(periodData, "summary.netProfit.previous", 0),
+          country // Pass country parameter
+        ),
+
+        margin: `${safeGet(periodData, "summary.margin.current", 0).toFixed(
+          2
+        )}%`,
+
+        orders: safeGet(periodData, "summary.orders.current", 0),
+        unitsSold: safeGet(periodData, "summary.unitsSold.current", 0),
+        refunds: safeGet(periodData, "summary.refunds.current", 0),
+        
+        // Update this to use formatCurrency with country
+        previous: formatCurrency(
+          safeGet(periodData, "summary.grossRevenue.previous", 0),
+          country // Pass country parameter
+        ),
+
+        revenueChange: (() => {
+          const delta = safeGet(periodData, "summary.grossRevenue.delta", 0);
+          const sign = delta >= 0 ? "+" : "";
+          return `${sign}${formatCurrency(Math.abs(delta), country)}`; // Pass country parameter
+        })(),
+
+        netProfitCalculation: periodData.netProfitCalculation || {},
+      };
+
+      acc.push(cardData);
+    } catch (error) {
+      console.error(`Error processing ${period} data:`, error);
+    }
+
+    return acc;
+  }, []);
+};
+  const processedData = metricsData ? transformData(metricsData,country) : [];
 
   return (
-    <Container maxWidth="xl">
+    <Container maxWidth="xl" sx={{ px: { xs: 1, sm: 2 } }}>
       {loading ? (
         <Box
           sx={{
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            minHeight: 400,
+            minHeight: { xs: 300, sm: 400 },
             width: "100%",
           }}
         >
           <DottedCircleLoading />
         </Box>
       ) : (
-        <Grid container spacing={2}>
-          {processedData.map((cardData, idx) => (
-            <Grid item xs={12} sm={6} md={6} xl={3} key={idx}>
-              <PerformanceCard {...cardData} />
-            </Grid>
-          ))}
-        </Grid>
+        <>
+          <Box
+            sx={{
+              px: { xs: 0, sm: 2 },
+              py: 2,
+              textAlign: "left",
+            }}
+          >
+            <Typography
+              variant="h5"
+              fontWeight="bold"
+              color="#13191F"
+              sx={{
+                fontFamily: "'Nunito Sans', sans-serif",
+                fontSize: { xs: "18px", sm: "20px" },
+              }}
+            >
+              Performance Summary
+            </Typography>
+          </Box>
+          <Grid container spacing={{ xs: 1.5, sm: 2 }}>
+            {processedData.map((cardData, idx) => (
+              <Grid item xs={12} sm={6} md={6} xl={3} key={idx}>
+                <PerformanceCard {...cardData} country={country}/>
+              </Grid>
+            ))}
+          </Grid>
+        </>
       )}
     </Container>
   );

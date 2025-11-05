@@ -1,16 +1,9 @@
-"use client";
-
 import { useEffect, useState, useRef } from "react";
 import {
   Box,
   Typography,
   Grid,
   Paper,
-  Table,
-  TableHead,
-  TableBody,
-  TableRow,
-  TableCell,
   Collapse,
   IconButton,
   Chip,
@@ -19,7 +12,14 @@ import {
   ListItemIcon,
   Tooltip,
   ListItemText,
+  useTheme,
+  useMediaQuery,
+  TableCell,
+  TableBody,
+  TableRow,
   Avatar,
+  Table,
+  TableHead,
 } from "@mui/material";
 import {
   Download,
@@ -31,21 +31,15 @@ import {
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { saveAs } from "file-saver";
 import axios from "axios";
-import dayjs, { utc } from "dayjs";
-import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
-import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
-import DottedCircleLoading from "../../../Loading/DotLoading";
+import dayjs from "dayjs";
+import utc from "dayjs/plugin/utc";
+import MarketplaceChart from "./MarketplaceChart";
 import CardComponent from "../CardComponet";
+import DottedCircleLoading from "../../../Loading/DotLoading";
+import NetProfitChart from "./NetProfitChart";
 import { formatCurrency } from "../../../../utils/currencyFormatter";
+
 dayjs.extend(utc);
-
-const fontStyles = {
-  fontSize: "16px",
-  color: "#485E75",
-  fontFamily:
-    "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-};
-
 function MarketplaceRow({ row, index }) {
   const [open, setOpen] = useState(false);
   const isFirstRow = index === 0;
@@ -156,11 +150,18 @@ function MarketplaceRow({ row, index }) {
     </>
   );
 }
+const fontStyles = {
+  fontSize: "16px",
+  color: "#485E75",
+  fontFamily:
+    "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+};
 
 export default function AllMarketplace({
   widgetData,
   marketPlaceId,
   brand_id,
+  country,
   product_id,
   manufacturer_name,
   fulfillment_channel,
@@ -174,6 +175,9 @@ export default function AllMarketplace({
   const [openTooltip, setOpenTooltip] = useState(false);
   const [loading, setLoading] = useState(false);
   const lastParamsRef = useRef("");
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   const handleTooltipOpen = () => {
     setOpenTooltip(true);
@@ -234,10 +238,8 @@ export default function AllMarketplace({
   const fromDate = marketplaceData?.from_date;
   const toDate = marketplaceData?.to_date;
 
-  // Helper function to safely parse only the date part of the string
   const parseDateOnly = (dateString) => {
     if (!dateString) return null;
-    // Use dayjs.utc to prevent the browser from shifting the date
     return dayjs.utc(dateString.slice(0, 10));
   };
 
@@ -251,6 +253,7 @@ export default function AllMarketplace({
           toDate
         ).format("MMM DD, YYYY")}`
       : "";
+
   const fetchAllMarketplace = async () => {
     setLoading(true);
     try {
@@ -259,6 +262,7 @@ export default function AllMarketplace({
       const response = await axios.post(
         `${process.env.REACT_APP_IP}allMarketplaceData/`,
         {
+          country: country,
           user_id: userId,
           preset: widgetData,
           marketplace_id: marketPlaceId.id,
@@ -283,12 +287,12 @@ export default function AllMarketplace({
     const currentParams = JSON.stringify({
       widgetData,
       marketPlaceId,
+      country,
       brand_id,
       product_id,
       manufacturer_name,
       fulfillment_channel,
       DateStartDate,
-      product_id,
       DateEndDate,
     });
     if (lastParamsRef.current !== currentParams) {
@@ -299,6 +303,7 @@ export default function AllMarketplace({
     widgetData,
     marketPlaceId,
     brand_id,
+    country,
     manufacturer_name,
     fulfillment_channel,
     DateStartDate,
@@ -322,17 +327,21 @@ export default function AllMarketplace({
         elevation={3}
         sx={{
           boxShadow: "none",
-          p: 4,
+          p: { xs: 2, sm: 3, md: 4 },
           border: "1px solid #e0e0e0",
           borderRadius: "8px",
         }}
       >
         {/* Header Section */}
         <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            mb: 3,
+            gap: { xs: 2, sm: 0 },
+          }}
         >
           <Box>
             <Typography
@@ -340,19 +349,32 @@ export default function AllMarketplace({
               sx={{
                 ...fontStyles,
                 fontWeight: 600,
-                fontSize: "20px",
+                fontSize: { xs: "18px", sm: "20px" },
                 color: "#111827",
               }}
             >
               All Marketplaces
             </Typography>
-            <Typography sx={{ ...fontStyles, fontSize: "14px", mb: 0.5 }}>
+            <Typography
+              sx={{
+                ...fontStyles,
+                fontSize: { xs: "12px", sm: "14px" },
+                mb: 0.5,
+              }}
+            >
               {widgetData === "Today" || widgetData === "Yesterday"
                 ? formattedCurrentDate
                 : formattedDateRange}
             </Typography>
           </Box>
-          <Box display="flex" alignItems="center">
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              width: { xs: "100%", sm: "auto" },
+              justifyContent: { xs: "space-between", sm: "flex-end" },
+            }}
+          >
             <Tooltip
               title={
                 <Typography
@@ -379,7 +401,7 @@ export default function AllMarketplace({
                     border: "1px solid #ccc",
                     borderRadius: "4px",
                     color: "#485E75",
-                    fontSize: "14px",
+                    fontSize: { xs: "12px", sm: "14px" },
                     fontFamily:
                       "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
                   },
@@ -389,24 +411,7 @@ export default function AllMarketplace({
                 },
               }}
             >
-              <Chip
-                label="Converted to $ USD"
-                size="small"
-                sx={{
-                  fontSize: "12px",
-                  fontFamily:
-                    "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                  backgroundColor: "rgb(227, 214, 245)",
-                  color: "#51228F",
-                  fontWeight: 500,
-                  mr: 1,
-                  cursor: "pointer",
-                }}
-              />
             </Tooltip>
-            <IconButton onClick={handleMenuOpen} size="small">
-              <MoreVert />
-            </IconButton>
             <Menu
               id="long-menu"
               MenuListProps={{ "aria-labelledby": "long-button" }}
@@ -415,8 +420,9 @@ export default function AllMarketplace({
               onClose={handleMenuClose}
               PaperProps={{
                 style: {
-                  width: 200,
+                  width: isMobile ? 180 : 200,
                   borderRadius: 10,
+                  zIndex: 1200,
                   boxShadow: "0 4px 20px rgba(0,0,0,0.1)",
                 },
               }}
@@ -429,7 +435,7 @@ export default function AllMarketplace({
                 sx={{
                   color: "rgb(72, 94, 117)",
                   fontFamily: "'Nunito Sans', sans-serif",
-                  fontSize: 14,
+                  fontSize: { xs: 12, sm: 14 },
                 }}
               >
                 <ListItemIcon sx={{ color: "rgb(72, 94, 117)", minWidth: 36 }}>
@@ -454,7 +460,7 @@ export default function AllMarketplace({
                 sx={{
                   color: "rgb(72, 94, 117)",
                   fontFamily: "'Nunito Sans', sans-serif",
-                  fontSize: 14,
+                  fontSize: { xs: 12, sm: 14 },
                 }}
               >
                 <ListItemIcon sx={{ color: "rgb(72, 94, 117)", minWidth: 36 }}>
@@ -476,7 +482,7 @@ export default function AllMarketplace({
                 sx={{
                   color: "rgb(72, 94, 117)",
                   fontFamily: "'Nunito Sans', sans-serif",
-                  fontSize: 14,
+                  fontSize: { xs: 12, sm: 14 },
                 }}
               >
                 <ListItemIcon sx={{ color: "rgb(72, 94, 117)", minWidth: 36 }}>
@@ -498,140 +504,11 @@ export default function AllMarketplace({
         </Box>
 
         {/* Main Content Grid */}
-        <Grid container spacing={3} mb={3}>
+        <Grid container spacing={{ xs: 2, sm: 3 }} mb={3}>
           {/* Left side - Metrics */}
           <Grid item xs={12} md={4}>
-            {!loading && (
-              <Grid container spacing={3}>
-                {[
-                  {
-                    title: "Gross Revenue",
-                    value: formatCurrency(
-                      allMarketplaceData?.grossRevenue?.current
-                    ),
-                    change:
-                      (allMarketplaceData?.grossRevenue?.delta >= 0
-                        ? "+"
-                        : "-") +
-                      formatCurrency(
-                        Math.abs(allMarketplaceData?.grossRevenue?.delta || 0)
-                      ),
-                    changeType:
-                      allMarketplaceData?.grossRevenue?.delta >= 0
-                        ? "up"
-                        : "down",
-                  },
-                  {
-                    title: "Expenses",
-                    value:
-                      "-" +
-                      formatCurrency(allMarketplaceData?.expenses?.current),
-                    change:
-                      (allMarketplaceData?.expenses?.delta >= 0 ? "+" : "-") +
-                      formatCurrency(
-                        Math.abs(allMarketplaceData?.expenses?.delta || 0)
-                      ),
-                    changeType:
-                      allMarketplaceData?.expenses?.delta >= 0 ? "up" : "down",
-                  },
-                  {
-                    title: "Net Profit",
-                    value: formatCurrency(
-                      allMarketplaceData?.netProfit?.current
-                    ),
-                    change:
-                      (allMarketplaceData?.netProfit?.delta >= 0 ? "+" : "-") +
-                      formatCurrency(
-                        Math.abs(allMarketplaceData?.netProfit?.delta || 0)
-                      ),
-                    changeType:
-                      allMarketplaceData?.netProfit?.delta >= 0 ? "up" : "down",
-                  },
-                  {
-                    title: "Units Sold",
-                    value:
-                      allMarketplaceData?.unitsSold?.current?.toLocaleString(
-                        "en-US"
-                      ) || "0",
-                    change:
-                      (allMarketplaceData?.unitsSold?.delta >= 0 ? "+" : "-") +
-                      Math.abs(
-                        allMarketplaceData?.unitsSold?.delta || 0
-                      ).toLocaleString("en-US"),
-                    changeType:
-                      allMarketplaceData?.unitsSold?.delta >= 0 ? "up" : "down",
-                  },
-                ].map((item, idx) => (
-                  <Grid
-                    item
-                    xs={12}
-                    sm={6}
-                    key={idx}
-                    sx={{
-                      borderLeft:
-                        idx !== 0 && idx % 2 === 0
-                          ? "1px solid #e0e0e0"
-                          : "none",
-                      pl: idx !== 0 && idx % 2 === 0 ? 3 : 0,
-                    }}
-                  >
-                    <Typography sx={{ ...fontStyles, fontWeight: 500, mb: 1 }}>
-                      {item.title}
-                    </Typography>
-                    <Typography
-                      variant="h4"
-                      sx={{
-                        fontFamily: fontStyles.fontFamily,
-                        fontSize: "28px",
-                        color: "#111827",
-                      }}
-                    >
-                      {item.value}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        fontSize: "14px",
-                        fontFamily: fontStyles.fontFamily,
-                        color: "#485E75",
-                        display: "flex",
-                        alignItems: "center",
-                        mt: 0.5,
-                      }}
-                    >
-                      {item.change}
-                      <Box
-                        component="span"
-                        sx={{
-                          color:
-                            item.changeType === "down" ? "#dc2626" : "#16a34a",
-                          fontSize: "14px",
-                          ml: 0.5,
-                        }}
-                      >
-                        {item.changeType === "down" ? (
-                          <ArrowDownwardIcon
-                            sx={{ fontSize: "14px", color: "red" }}
-                          />
-                        ) : (
-                          <ArrowUpwardIcon
-                            sx={{
-                              fontSize: "14px",
-                              color: "rgb(51, 204, 153)",
-                            }}
-                          />
-                        )}
-                      </Box>
-                    </Typography>
-                  </Grid>
-                ))}
-              </Grid>
-            )}
-          </Grid>
-
-          {/* Right side - CardComponent instead of Orders Chart */}
-          <Grid item xs={12} md={8}>
             <CardComponent
+              country={country}
               widgetData={widgetData}
               marketPlaceId={marketPlaceId}
               DateStartDate={DateStartDate}
@@ -641,9 +518,53 @@ export default function AllMarketplace({
               manufacturer_name={manufacturer_name}
             />
           </Grid>
+          <Grid item xs={12} md={4}>
+            {loading ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: { xs: 200, sm: 300 },
+                  width: "100%",
+                  height: "100%",
+                }}
+              >
+                <Box sx={{ width: "100%" }}>
+                  <DottedCircleLoading />
+                </Box>
+              </Box>
+            ) : (
+              <NetProfitChart marketplaceList={rows} country={country} />
+            )}
+          </Grid>
+
+          {/* Right side - CardComponent */}
+          
+          <Grid item xs={12} md={4}>
+            {loading ? (
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  minHeight: { xs: 200, sm: 300 },
+                  width: "100%",
+                  height: "100%",
+                }}
+              >
+                <Box sx={{ width: "100%" }}>
+                  <DottedCircleLoading />
+                </Box>
+              </Box>
+            ) : (
+                          <MarketplaceChart marketplaceList={rows} />
+
+            )}
+          </Grid>
         </Grid>
 
-        {/* Marketplace Breakdown Section */}
+        {/* Marketplace Breakdown Section - Now with Chart */}
         <Box
           display="flex"
           alignItems="center"
@@ -770,7 +691,7 @@ export default function AllMarketplace({
               </Table>
             )}
           </Box>
-        </Collapse>
+          </Collapse>
       </Paper>
     </Box>
   );

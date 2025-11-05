@@ -11,6 +11,8 @@ import {
   MenuItem,
   IconButton,
   Box,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   LineChart,
@@ -32,9 +34,11 @@ import { format } from "date-fns";
 import DonutChart from "./DonutChart";
 import { utcToZonedTime, zonedTimeToUtc } from "date-fns-tz";
 import { fetchMarketplaceList } from "../../../utils/marketplace";
+import { formatCurrency } from "../../../utils/currencyFormatter";
 
 const TotalOrdersGraph = ({
   widgetData,
+  country,
   marketPlaceId,
   DateStartDate,
   DateEndDate,
@@ -55,6 +59,12 @@ const TotalOrdersGraph = ({
   const [salesData, setSalesData] = useState([]);
   const [chartOffset, setChartOffset] = useState(0);
   const chartContainerRef = useRef(null);
+
+  // Add responsive hooks
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
 
   const userData = localStorage.getItem("user");
   let userIds = "";
@@ -117,6 +127,7 @@ const TotalOrdersGraph = ({
       const orderResponse = await axios.post(
         `${process.env.REACT_APP_IP}salesAnalytics/`,
         {
+          country:country,
           preset: widgetData,
           brand_id: brand_id,
           product_id: product_id,
@@ -154,6 +165,7 @@ const TotalOrdersGraph = ({
   fetchData();
 }, [
   widgetData,
+  country,
   marketPlaceId?.id,
   DateStartDate,
   DateEndDate,
@@ -164,14 +176,6 @@ const TotalOrdersGraph = ({
   fulfillment_channel
 ]);
 
-  const getRandomColor = () => {
-    const letters = "0123456789ABCDEF";
-    let color = "#";
-    for (let i = 0; i < 6; i++) {
-      color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-  };
 
   if (loading) {
     return (
@@ -180,7 +184,7 @@ const TotalOrdersGraph = ({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          height: "100vh",
+          height: { xs: "50vh", sm: "100vh" },
         }}
       >
         <Typography variant="h6">
@@ -190,13 +194,11 @@ const TotalOrdersGraph = ({
     );
   }
 
-  const formatDateTick = (tickItem) => {
-    return format(tickItem, "MMM dd"); // Format date as "Month Day" (e.g., "Jan 01")
-  };
+  
 
   return (
-    <Box p={2}>
-      <Grid container spacing={2}>
+    <Box sx={{ p: { xs: 1, sm: 2 } }}>
+      <Grid container spacing={{ xs: 1, sm: 2 }}>
         {/* Custom Bar Chart */}
       </Grid>
       <Grid item xs={12} sm={12}>
@@ -204,33 +206,43 @@ const TotalOrdersGraph = ({
           <Card
             sx={{
               mb: 2,
-              width: "101%",
+              width: { xs: "100%", sm: "101%" },
               maxWidth: 1500,
               position: "relative",
-              marginLeft: "-10px",
-              minHeight: 300,
+              marginLeft: { xs: "0", sm: "-10px" },
+              minHeight: { xs: 250, sm: 300 },
               display: "flex",
               flexDirection: "column",
               justifyContent: "space-between",
             }}
           >
-            <CardContent sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" sx={{ fontSize: "1rem" }}>
+            <CardContent sx={{ flexGrow: 1, p: { xs: 1.5, sm: 2 } }}>
+              <Typography 
+                variant="h6" 
+                sx={{ 
+                  fontSize: { xs: "0.9rem", sm: "1rem" },
+                  mb: { xs: 0.5, sm: 0 }
+                }}
+              >
                 💲 Total Sales
               </Typography>
 
               {/* <FormControl
                 sx={{
                     position: 'absolute',
-                    top: 10,
-                    right: 10,
-                    minWidth: 100,
+                    top: { xs: 8, sm: 10 },
+                    right: { xs: 8, sm: 10 },
+                    minWidth: { xs: 80, sm: 100 },
                     '& .MuiOutlinedInput-root': {
-                        height: 30,
+                        height: { xs: 28, sm: 30 },
                         padding: '5px',
+                        fontSize: { xs: '0.75rem', sm: '1rem' },
                     },
                     '& .MuiSelect-icon': {
-                        fontSize: '1rem',
+                        fontSize: { xs: '0.9rem', sm: '1rem' },
+                    },
+                    '& .MuiInputLabel-root': {
+                        fontSize: { xs: '0.75rem', sm: '1rem' },
                     },
                 }}
             >
@@ -253,9 +265,12 @@ const TotalOrdersGraph = ({
                 variant="h4"
                 align="right"
                 fontWeight="bold"
-                sx={{ fontSize: "18px", marginBottom: 1 }}
+                sx={{ 
+                  fontSize: { xs: "16px", sm: "18px" }, 
+                  marginBottom: { xs: 0.5, sm: 1 } 
+                }}
               >
-                ${order?.total_sales ? order.total_sales.toFixed(2) : 0}
+                 {formatCurrency(order?.total_sales || 0, country)}
               </Typography>
 
               <Box
@@ -265,34 +280,55 @@ const TotalOrdersGraph = ({
                   justifyContent: "space-between",
                 }}
               >
-                {/* <IconButton onClick={() => handleScroll('left')} disabled={chartOffset === 0}>
-                    <ArrowBackIosIcon />
+                {/* <IconButton 
+                  onClick={() => handleScroll('left')} 
+                  disabled={chartOffset === 0}
+                  size={isMobile ? "small" : "medium"}
+                >
+                    <ArrowBackIosIcon sx={{ fontSize: { xs: '16px', sm: '24px' } }} />
                 </IconButton> */}
 
                 <div
                   ref={chartContainerRef}
                   style={{
-                    width: "calc(100% - 100px)",
+                    width: isMobile ? "100%" : "calc(100% - 100px)",
                     scrollBehavior: "smooth",
                   }}
                 >
                   {salesData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height={235}>
-                      <LineChart data={salesData}>
+                    <ResponsiveContainer 
+                      width="100%" 
+                      height={isMobile ? 180 : isTablet ? 210 : 235}
+                    >
+                      <LineChart 
+                        data={salesData}
+                        margin={{
+                          top: 5,
+                          right: isMobile ? 5 : 30,
+                          left: isMobile ? -10 : 0,
+                          bottom: 5,
+                        }}
+                      >
                         <XAxis
                           dataKey="date"
+                          tick={{ fontSize: isMobile ? 10 : 12 }}
+                          angle={isMobile ? -45 : 0}
+                          textAnchor={isMobile ? "end" : "middle"}
+                          height={isMobile ? 60 : 30}
                           tickFormatter={(value) => {
                             const pacificTime = utcToZonedTime(
                               value,
                               "US/Pacific"
                             );
-                            return format(pacificTime, "MMM dd"); // e.g., "Jul 17"
+                            return format(pacificTime, isMobile ? "M/d" : "MMM dd");
                           }}
                         />
 
-                        <YAxis />
+                        <YAxis 
+                          tick={{ fontSize: isMobile ? 10 : 12 }}
+                        />
                         <Tooltip
-                          formatter={(value) => `$${value.toFixed(2)}`}
+                          formatter={(value) => formatCurrency(value,country)}
                           labelFormatter={(label) => {
                             const pacificTime = utcToZonedTime(
                               label,
@@ -300,15 +336,18 @@ const TotalOrdersGraph = ({
                             );
                             return format(pacificTime, "MMM dd");
                           }}
+                          contentStyle={{
+                            fontSize: isMobile ? '11px' : '14px'
+                          }}
                         />
 
                         <Line
                           type="monotone"
                           dataKey="revenue"
                           stroke="#8A56AC"
-                          strokeWidth={2}
+                          strokeWidth={isMobile ? 1.5 : 2}
                           dot={false} // no initial dots
-                          activeDot={{ r: 4 }} // dot appears on hover
+                          activeDot={{ r: isMobile ? 3 : 4 }} // dot appears on hover
                         />
                       </LineChart>
                     </ResponsiveContainer>
@@ -318,7 +357,7 @@ const TotalOrdersGraph = ({
                         display: "flex",
                         justifyContent: "center",
                         alignItems: "center",
-                        height: 225,
+                        height: { xs: 180, sm: 225 },
                         width: "100%",
                       }}
                     >
@@ -326,7 +365,7 @@ const TotalOrdersGraph = ({
                         variant="body2"
                         sx={{
                           textAlign: "center",
-                          fontSize: "1rem",
+                          fontSize: { xs: "0.875rem", sm: "1rem" },
                           fontWeight: "bold",
                           color: "#888",
                         }}
@@ -337,8 +376,11 @@ const TotalOrdersGraph = ({
                   )}
                 </div>
 
-                {/* <IconButton onClick={() => handleScroll('right')}>
-                    <ArrowForwardIosIcon />
+                {/* <IconButton 
+                  onClick={() => handleScroll('right')}
+                  size={isMobile ? "small" : "medium"}
+                >
+                    <ArrowForwardIosIcon sx={{ fontSize: { xs: '16px', sm: '24px' } }} />
                 </IconButton> */}
               </Box>
             </CardContent>

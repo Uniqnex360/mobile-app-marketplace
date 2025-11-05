@@ -1,6 +1,23 @@
 .App {
   text-align: center;
 }
+/* Reset default margins and handle safe areas */
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+#root {
+  height: 100%;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* For iOS devices with home indicator */
+.MuiPaper-root {
+  padding-bottom: env(safe-area-inset-bottom);
+}
 
 .App-logo {
   height: 40vmin;

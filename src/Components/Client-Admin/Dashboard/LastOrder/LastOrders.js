@@ -10,6 +10,8 @@ import {
   IconButton,
   Tooltip as MuiTooltip,
   Skeleton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   BarChart,
@@ -31,12 +33,16 @@ import CustomizeTooltip from "../../CustomTooltip/CustomTooltip";
 import LatestOrdersSkeleton from "./LastOrderLoading";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
+import { formatCurrency } from "../../../../utils/currencyFormatter";
 dayjs.locale("en-in");
 dayjs.extend(localizedFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
 const CustomTooltip = React.memo(({ active, payload }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   if (active && payload && payload.length && payload[0].value > 0) {
     const hour = parseInt(payload[0].payload.hour);
     const date = dayjs().hour(hour).minute(0);
@@ -48,10 +54,10 @@ const CustomTooltip = React.memo(({ active, payload }) => {
     return (
       <Paper
         sx={{
-          p: 1.5,
+          p: { xs: 1, sm: 1.5 },
           borderRadius: 2,
           boxShadow: "none",
-          minWidth: 180,
+          minWidth: { xs: 150, sm: 180 },
           border: "1px solid rgb(161, 173, 184)",
         }}
       >
@@ -59,6 +65,7 @@ const CustomTooltip = React.memo(({ active, payload }) => {
           variant="body2"
           sx={{
             color: "#485E75",
+            fontSize: { xs: "11px", sm: "14px" },
             fontFamily:
               "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif",
           }}
@@ -66,7 +73,14 @@ const CustomTooltip = React.memo(({ active, payload }) => {
         >
           {startTime} - {endTime} {date.format("MMM D,")}
         </Typography>
-        <Typography variant="body2" sx={{ mt: 0.5 }} align="left">
+        <Typography 
+          variant="body2" 
+          sx={{ 
+            mt: 0.5,
+            fontSize: { xs: "11px", sm: "14px" }
+          }} 
+          align="left"
+        >
           <Box component="span" fontWeight="bold">
             {orders} {orders === 1 ? "Order" : "Orders"}
           </Box>{" "}
@@ -80,10 +94,13 @@ const CustomTooltip = React.memo(({ active, payload }) => {
   return null;
 });
 
-const OrderCard = React.memo(({ order }) => {
+const OrderCard = React.memo(({ order,country }) => {
   const [tooltipText, setTooltipText] = useState("");
   const [loading, setLoading] = useState(false);
   const systemTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleTooltipOpen = useCallback((value) => {
     const isNumberOnly = /^\d+$/.test(value);
@@ -134,8 +151,8 @@ const OrderCard = React.memo(({ order }) => {
     >
       <CardContent
         sx={{
-          padding: "8px 12px",
-          "&:last-child": { paddingBottom: "8px" },
+          padding: { xs: "6px 10px", sm: "8px 12px" },
+          "&:last-child": { paddingBottom: { xs: "6px", sm: "8px" } },
         }}
       >
         <Box
@@ -144,27 +161,25 @@ const OrderCard = React.memo(({ order }) => {
             justifyContent: "space-between",
             alignItems: "center",
             mb: 0.5,
+            flexWrap: { xs: 'wrap', sm: 'nowrap' },
+            gap: { xs: 0.5, sm: 0 }
           }}
         >
           <Typography
             variant="caption"
-            sx={{ fontSize: "11.5px", color: "#555" }}
+            sx={{ fontSize: { xs: "10px", sm: "11.5px" }, color: "#555" }}
           >
-            {/* {dayjs(order.purchaseDate+ 'Z').utc().tz(dayjs.tz.guess()).format("h:mm A")} */}
-
             {order.purchaseDate
               ? dayjs.tz(order.purchaseDate, "US/Pacific").format("h:mm A")
               : "N/A"}
-
-            {/* {order.purchaseDate ? new Date(order.purchaseDate).toLocaleDateString('en-GB') : 'N/A'} */}
           </Typography>
           <Typography
             variant="caption"
-            sx={{ fontSize: "12px", fontWeight: 500 }}
+            sx={{ fontSize: { xs: "10px", sm: "12px" }, fontWeight: 500 }}
           >
             Price:{" "}
             <Box component="span" sx={{ color: "grey" }}>
-              ${order.price}
+              {formatCurrency(order.price,country)}
             </Box>{" "}
             Quantity:{" "}
             <Box component="span" sx={{ color: "grey" }}>
@@ -173,11 +188,11 @@ const OrderCard = React.memo(({ order }) => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: { xs: 1, sm: 1.5 } }}>
           <Avatar
             variant="rounded"
             src={order.imageUrl}
-            sx={{ width: 30, height: 30, mt: 0.5 }}
+            sx={{ width: { xs: 25, sm: 30 }, height: { xs: 25, sm: 30 }, mt: 0.5 }}
           />
 
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
@@ -192,7 +207,7 @@ const OrderCard = React.memo(({ order }) => {
                   variant="subtitle2"
                   fontWeight={600}
                   sx={{
-                    fontSize: "14px",
+                    fontSize: { xs: "12px", sm: "14px" },
                     lineHeight: 1.4,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
@@ -218,18 +233,18 @@ const OrderCard = React.memo(({ order }) => {
                 mt: 0.5,
               }}
             >
-              <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
                 <img
                   src="https://re-cdn.helium10.com/container/static/Flag-united-states-ksqXwksC.svg"
                   alt="Country Flag"
-                  width={27}
-                  height={16}
+                  width={isMobile ? 20 : 27}
+                  height={isMobile ? 12 : 16}
                   style={{ marginRight: 6 }}
                 />{" "}
                 <Typography
                   variant="caption"
                   sx={{
-                    fontSize: "14px",
+                    fontSize: { xs: "11px", sm: "14px" },
                     color: "#485E75",
                     fontFamily:
                       "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
@@ -246,10 +261,10 @@ const OrderCard = React.memo(({ order }) => {
                   <IconButton
                     onClick={() => handleCopy(order.asin)}
                     size="small"
-                    sx={{ mr: 0.5 }}
+                    sx={{ mr: 0.5, padding: { xs: '2px', sm: '4px' } }}
                   >
                     <ContentCopyIcon
-                      sx={{ fontSize: "14px", color: "#757575" }}
+                      sx={{ fontSize: { xs: "12px", sm: "14px" }, color: "#757575" }}
                     />
                   </IconButton>
                 </MuiTooltip>
@@ -258,11 +273,15 @@ const OrderCard = React.memo(({ order }) => {
                   placement="top"
                   arrow
                 >
-                  <IconButton size="small" sx={{ p: 0.5 }}>
+                  <IconButton size="small" sx={{ p: { xs: 0.3, sm: 0.5 } }}>
                     •{" "}
                     <InfoOutlinedIcon
                       fontSize="inherit"
-                      sx={{ paddingLeft: "3px", height: "16px", width: "16px" }}
+                      sx={{ 
+                        paddingLeft: "3px", 
+                        height: { xs: "14px", sm: "16px" }, 
+                        width: { xs: "14px", sm: "16px" } 
+                      }}
                     />
                   </IconButton>
                 </MuiTooltip>
@@ -277,6 +296,7 @@ const OrderCard = React.memo(({ order }) => {
 
 const LastOrders = React.memo(
   ({
+    country,
     marketPlaceId,
     brand_id,
     product_id,
@@ -288,6 +308,10 @@ const LastOrders = React.memo(
     const [loading, setLoading] = useState(true);
     const lastParamsRef = useRef("");
 
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+    const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
+    
     const fetchLatestOrders = useCallback(async () => {
       try {
         setLoading(true);
@@ -376,14 +400,14 @@ const LastOrders = React.memo(
     ]);
 
     return (
-      <Grid container spacing={3} sx={{ p: 2 }}>
+      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ p: { xs: 1, sm: 2 } }}>
         {loading ? (
           <Box
             sx={{
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              minHeight: 300,
+              minHeight: { xs: 200, sm: 300 },
               width: "100%",
             }}
           >
@@ -392,17 +416,37 @@ const LastOrders = React.memo(
         ) : (
           <>
             <Grid item xs={12} md={8}>
-              <Typography variant="h6" sx={{ fontSize: "20px" }} mb={2}>
+              <Typography 
+                variant="h6" 
+                sx={{ fontSize: { xs: "18px", sm: "20px" } }} 
+                mb={{ xs: 1, sm: 2 }}
+              >
                 {chartData.length > 0 ? "Latest Orders" : null}
               </Typography>
 
-              <Typography variant="h6" sx={{ fontSize: "14px" }} mb={2}>
+              <Typography 
+                variant="h6" 
+                sx={{ fontSize: { xs: "12px", sm: "14px" } }} 
+                mb={{ xs: 1, sm: 2 }}
+              >
                 Showing all orders from the last 24 hours
               </Typography>
               <Paper elevation={2} sx={{ borderRadius: 2, boxShadow: "none" }}>
                 {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={350}>
-                    <BarChart data={chartData} barCategoryGap="20%">
+                  <ResponsiveContainer 
+                    width="100%" 
+                    height={isMobile ? 250 : isTablet ? 300 : 350}
+                  >
+                    <BarChart 
+                      data={chartData} 
+                      barCategoryGap={isMobile ? "10%" : "20%"}
+                      margin={{ 
+                        top: 10, 
+                        right: isMobile ? 5 : 30, 
+                        left: isMobile ? -10 : 0, 
+                        bottom: 5 
+                      }}
+                    >
                       <CartesianGrid
                         vertical={false}
                         horizontal={true}
@@ -411,17 +455,20 @@ const LastOrders = React.memo(
 
                       <XAxis
                         dataKey="time"
-                        tick={{ fontSize: "12px" }}
+                        tick={{ fontSize: isMobile ? "10px" : "12px" }}
                         tickLine={false}
                         interval={0}
+                        angle={isMobile ? -45 : 0}
+                        textAnchor={isMobile ? "end" : "middle"}
+                        height={isMobile ? 60 : 30}
                         tickFormatter={(value, index) => {
                           const hour = chartData[index]?.hour;
-                          return hour % 4 === 1 ? value : "";
+                          return hour % (isMobile ? 6 : 4) === 1 ? value : "";
                         }}
                       />
 
                       <YAxis
-                        tick={{ fontSize: "12px" }}
+                        tick={{ fontSize: isMobile ? "10px" : "12px" }}
                         allowDecimals={false}
                         tickLine={false}
                         axisLine={false}
@@ -439,7 +486,7 @@ const LastOrders = React.memo(
                   <Typography
                     variant="body2"
                     color="text.secondary"
-                    sx={{ p: 2 }}
+                    sx={{ p: 2, fontSize: { xs: "12px", sm: "14px" } }}
                   >
                     No order data available for the last 24 hours.
                   </Typography>
@@ -450,7 +497,12 @@ const LastOrders = React.memo(
             {/* Product Cards - Right Side */}
             <Grid item xs={12} md={4}>
               <Typography
-                sx={{ mb: 1, fontSize: "16px", color: "grey", fontWeight: 600 }}
+                sx={{ 
+                  mb: 1, 
+                  fontSize: { xs: "14px", sm: "16px" }, 
+                  color: "grey", 
+                  fontWeight: 600 
+                }}
               >
                {dayjs().tz("US/Pacific").format("MMMM D")}
               </Typography>
@@ -458,7 +510,7 @@ const LastOrders = React.memo(
                 elevation={2}
                 sx={{
                   boxShadow: "none",
-                  maxHeight: "400px",
+                  maxHeight: { xs: "300px", sm: "400px" },
                   overflowY: "auto",
                   borderRadius: 2,
                   "&::-webkit-scrollbar": {
@@ -478,9 +530,9 @@ const LastOrders = React.memo(
                   },
                 }}
               >
-                {latestOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
+               {latestOrders.map((order, index) => (
+  <OrderCard key={`${order.id}-${index}`} order={order} country={country} />
+))}
               </Paper>
             </Grid>
           </>

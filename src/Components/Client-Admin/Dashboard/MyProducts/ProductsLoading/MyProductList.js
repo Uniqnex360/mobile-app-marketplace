@@ -15,6 +15,8 @@ import {
   Chip,
   Badge,
   Popover,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
@@ -121,7 +123,9 @@ const NumberIndicator = ({ value, change }) => (
     )}
   </Box>
 );
+
 const MyProductList = ({
+  country,
   widgetData,
   marketPlaceId,
   brand_id,
@@ -131,6 +135,10 @@ const MyProductList = ({
   DateStartDate,
   DateEndDate,
 }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const isSmallMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const navigate = useNavigate();
   const location = useLocation();
   const [selectedImageSize, setSelectedImageSize] = useState("Medium");
@@ -154,6 +162,7 @@ const MyProductList = ({
   const initialPage = parseInt(queryParams.get("page"), 10) || 1;
   const [loadingTime, setLoadingTime] = useState(0);
   const loadingIntervalRef = useRef(null);
+  
   useEffect(() => {
     return () => {
       if (loadingIntervalRef.current) {
@@ -161,6 +170,7 @@ const MyProductList = ({
       }
     };
   }, []);
+  
   const startLoadingTimer = () => {
     setLoadingTime(0);
     if (loadingIntervalRef.current) {
@@ -170,12 +180,14 @@ const MyProductList = ({
       setLoadingTime((prev) => prev + 1);
     }, 1000);
   };
+  
   const stopLoadingTimer = () => {
     if (loadingIntervalRef.current) {
       clearInterval(loadingIntervalRef.current);
       loadingIntervalRef.current = null;
     }
   };
+  
   const [page, setPage] = useState(initialPage); 
   const [showSearch, setShowSearch] = useState(false); 
   let lastParamsRef = useRef(""); 
@@ -198,12 +210,13 @@ const MyProductList = ({
   const [hasChanges, setHasChanges] = useState(false);
   const initialRowsPerPage = parseInt(queryParams.get("rowsPerPage"), 10) || 50; 
   const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage); 
+  
   const handlePopoverClose = () => {
     setAnchorEl(null);
     setIsFilterOpen(false); 
   };
+  
   useEffect(() => {
-    
     const currentParentTrimmed = (parentAsin || "").trim();
     const currentSkuTrimmed = (skuAsin || "").trim();
     const appliedParentTrimmed = (filterParent || "").trim();
@@ -217,16 +230,16 @@ const MyProductList = ({
       setHasChanges(currentParentTrimmed !== appliedParentTrimmed);
     }
   }, [parentAsin, skuAsin, TabType, filterParent, filterSku]);
+  
   const handleClear = () => {
     setParentAsin(""); 
     setSkuAsin(""); 
-    
-    
-    
   };
+  
   const closeCustomModal = () => {
     setIsCustomizedPage(false);
   };
+  
   const handleToggleAll = () => {
     if (selectAll) {
       setSelectedColumns([]);
@@ -238,6 +251,7 @@ const MyProductList = ({
     }
     setSelectAll(!selectAll);
   };
+  
   const handleCheckboxChange = (column) => {
     if (selectedColumns.includes(column)) {
       setSelectedColumns(selectedColumns.filter((col) => col !== column));
@@ -245,8 +259,8 @@ const MyProductList = ({
       setSelectedColumns([...selectedColumns, column]);
     }
   };
+  
   const handleFilterClick = (event) => {
-    
     setParentAsin(filterParent);
     setSkuAsin(filterSku);
     setAnchorEl(event.currentTarget);
@@ -254,18 +268,12 @@ const MyProductList = ({
     setPage(1);
     setRowsPerPage(10);
   };
+  
   const handleCustomizedPage = (event, value) => {
     setIsCustomizedPage(true);
   };
-  /**
-   * Handles applying filters, either from the popover or from clearing chips.
-   * @param {object} [newFilterValues] - Optional. An object containing {parentAsin, skuAsin} if called from a chip.
-   * If not provided, it uses the current state of parentAsin and skuAsin.
-   * @param {boolean} [closePopover=true] - Optional. Whether to close the popover after applying filters.
-   * Defaults to true, set to false for chip deletions.
-   */
+  
   const handleApplyFilter = (newFilterValues = {}, closePopover = true) => {
-    
     const finalParentAsin =
       newFilterValues.parentAsin !== undefined
         ? newFilterValues.parentAsin
@@ -286,17 +294,16 @@ const MyProductList = ({
       parentAsin: finalParentAsin.trim(),
       skuAsin: finalSkuAsin.trim(),
     });
-    
-    
   };
+  
   const getFilterCount = () => {
     let count = 0;
     if (filterParent?.trim()) count++;
     if (filterSku?.trim()) count++;
     return count;
   };
+  
   const handleClearFilter = () => {
-    
     setFilterParent("");
     setFilterSku("");
     setParentAsin("");
@@ -308,7 +315,6 @@ const MyProductList = ({
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
     if (e.target.value) {
-      
       setPage(1);
       setRowsPerPage(10);
     }
@@ -317,7 +323,6 @@ const MyProductList = ({
   const handleColumnCategoryClick = (index) => {
     setActiveColumnCategoryTab(index);
     console.log("Column category changed to:", index);
-    
   };
   
   const handleRowsPerPageChange = (e) => {
@@ -353,17 +358,9 @@ const MyProductList = ({
     let finalColumns = [...columns];
     
     if (isParentTab) {
-      
-      
-      
-      
-      
-      
-      
       if (finalColumns.includes("Price")) {
         finalColumns = finalColumns.filter((col) => col !== "Price");
       }
-      
       
       if (allColumns.includes("Price") && !finalColumns.includes("Price")) {
         const stockIndex = finalColumns.indexOf("Stock");
@@ -374,8 +371,6 @@ const MyProductList = ({
         }
       }
     } else {
-      
-      
       if (!finalColumns.includes("Price")) {
         const stockIndex = finalColumns.indexOf("Stock");
         if (stockIndex !== -1) {
@@ -386,14 +381,12 @@ const MyProductList = ({
       }
     }
     
-    
     if (isParentTab) {
       finalColumns = finalColumns.filter((col) => col !== "Price");
     }
     
     if (columnCategoryIndex === 0 || columnCategoryIndex === 3) {
       if (isParentTab) {
-        
         if (!finalColumns.includes("current price Range")) {
           finalColumns.push("current price Range");
         }
@@ -401,7 +394,6 @@ const MyProductList = ({
           (col) => !["ListingScore", "Fulfilment status"].includes(col)
         );
       } else {
-        
         if (!finalColumns.includes("Listings")) {
           finalColumns.push("Listings");
         }
@@ -413,7 +405,6 @@ const MyProductList = ({
         );
       }
     } else {
-      
       finalColumns = finalColumns.filter(
         (col) =>
           ![
@@ -442,15 +433,13 @@ const MyProductList = ({
     
     setActiveColumnCategoryTab(0);
   };
-  // useEffect(() => {
-  //   setRowsPerPage(initialRowsPerPage);
-  // }, [location.search]);
-  
+
   useEffect(() => {
     const columns = getColumnSet(activeColumnCategoryTab, tab === 0);
     setVisibleColumns(columns);
     setSelectedColumns(columns);
   }, [activeColumnCategoryTab, tab, filterParent, filterSku]);
+  
   useEffect(() => {
     setVisibleColumns(selectedColumns);
   }, [selectedColumns]);
@@ -471,6 +460,7 @@ const MyProductList = ({
       activeColumnCategoryTab,
       sortValues,
       filterParent,
+      country,
       filterSku,
     });
     
@@ -494,7 +484,9 @@ const MyProductList = ({
     sortValues,
     filterParent,
     filterSku,
+    country
   ]);
+  
   const fetchMyProducts = async (currentPage) => {
     setLoading(true);
     startLoadingTimer();
@@ -508,6 +500,7 @@ const MyProductList = ({
       const response = await axios.post(
         `${process.env.REACT_APP_IP}get_products_with_pagination/`,
         {
+          country:country,
           parent: tab === 0, 
           preset: widgetData,
           marketplace_id: marketPlaceId.id,
@@ -655,116 +648,136 @@ const MyProductList = ({
       stopLoadingTimer();
     }
   };
+
   return (
     <Box
       sx={{
         borderRadius: 1,
         border: "1px solid #ccc",
-        width: "98%",
-        padding: "4px",
+        width: isMobile ? "100%" : "98%",
+        padding: isSmallMobile ? "2px" : "4px",
+        overflowX: "auto",
+        minHeight: "400px",
       }}
     >
-      {/* My Products Title and Tabs */}
       <Box
         display="flex"
-        sx={{ borderBottom: "1px solid #ddd", padding: "4px" }}
-        alignItems="center"
+        sx={{ 
+          borderBottom: "1px solid #ddd", 
+          padding: isSmallMobile ? "2px" : "4px",
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? 1 : 0
+        }}
+        alignItems={isMobile ? "flex-start" : "center"}
         mb={2}
       >
-        <Typography
-          variant="h6"
-          component="div"
-          sx={{
-            fontFamily:
-              "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-            fontWeight: 600,
-            fontSize: "20px",
-            color: "#1A2027",
-          }}
-        >
-          My Products
-        </Typography>
-        <Box
-          sx={{
-            marginTop: "10px",
-            display: "flex",
-            justifyContent: "center",
-            backgroundColor: "#dce3ec",
-            borderRadius: "20px",
-            px: "4px",
-            py: "2px",
-            marginLeft: "10px",
-            width: "fit-content",
-            mb: 1.5,
-          }}
-        >
-          <Tabs
-            value={tab}
-            onChange={handleChangeParentSkuTab} 
-            variant="standard"
+        <Box display="flex" alignItems="center" sx={{ width: isMobile ? "100%" : "auto" }}>
+          <Typography
+            variant="h6"
+            component="div"
             sx={{
-              height: "28px",
-              minHeight: "26px",
-              "& .MuiTabs-flexContainer": {
-                minHeight: "26px",
-              },
-              "& .MuiTabs-indicator": {
-                display: "none",
-              },
+              fontFamily:
+                "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+              fontWeight: 600,
+              fontSize: isMobile ? "18px" : "20px",
+              color: "#1A2027",
+              whiteSpace: "nowrap",
             }}
           >
-            {["Parent", "SKU"].map((label, index) => (
-              <Tab
-                key={label}
-                label={
-                  <Typography
-                    fontSize="14px"
-                    sx={{
-                      height: "20px",
-                      fontFamily:
-                        "'Nunito Sans', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
-                    }}
-                    fontWeight={tab === index ? 600 : 400}
-                  >
-                    {label}
-                  </Typography>
-                }
-                sx={{
-                  marginTop: "2px",
-                  minHeight: "22px",
-                  height: "22px",
-                  minWidth: "50px",
-                  px: 1,
-                  mx: 0.3,
-                  textTransform: "none",
-                  borderRadius: "14px",
-                  fontSize: "12px",
-                  color: "#2b2f3c",
-                  backgroundColor: tab === index ? "#ffffff" : "transparent",
-                  "&.Mui-selected": {
-                    color: "#000",
-                  },
-                  "&:hover": {
-                    backgroundColor: tab === index ? "#ffffff" : "#cbd8e6",
-                  },
-                  "&:active": {
-                    backgroundColor: "#b4c9df",
-                  },
-                }}
-              />
-            ))}
-          </Tabs>
+            My Products
+          </Typography>
+          <Box
+            sx={{
+              marginTop: "10px",
+              display: "flex",
+              justifyContent: "center",
+              backgroundColor: "#dce3ec",
+              borderRadius: "20px",
+              px: "4px",
+              py: "2px",
+              marginLeft: "10px",
+              width: "fit-content",
+              mb: 1.5,
+            }}
+          >
+            <Tabs
+              value={tab}
+              onChange={handleChangeParentSkuTab}
+              variant="standard"
+              sx={{
+                height: "28px",
+                minHeight: "26px",
+                "& .MuiTabs-flexContainer": {
+                  minHeight: "26px",
+                },
+                "& .MuiTabs-indicator": {
+                  display: "none",
+                },
+              }}
+            >
+              {["Parent", "SKU"].map((label, index) => (
+                <Tab
+                  key={label}
+                  label={
+                    <Typography
+                      fontSize={isMobile ? "12px" : "14px"}
+                      sx={{
+                        height: "20px",
+                        fontFamily:
+                          "'Nunito Sans', 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif",
+                      }}
+                      fontWeight={tab === index ? 600 : 400}
+                    >
+                      {label}
+                    </Typography>
+                  }
+                  sx={{
+                    marginTop: "2px",
+                    minHeight: "22px",
+                    height: "22px",
+                    minWidth: isMobile ? "40px" : "50px",
+                    px: 1,
+                    mx: 0.3,
+                    textTransform: "none",
+                    borderRadius: "14px",
+                    fontSize: "12px",
+                    color: "#2b2f3c",
+                    backgroundColor: tab === index ? "#ffffff" : "transparent",
+                    "&.Mui-selected": {
+                      color: "#000",
+                    },
+                    "&:hover": {
+                      backgroundColor: tab === index ? "#ffffff" : "#cbd8e6",
+                    },
+                    "&:active": {
+                      backgroundColor: "#b4c9df",
+                    },
+                  }}
+                />
+              ))}
+            </Tabs>
+          </Box>
         </Box>
-      </Box>
-      <Box display="flex" alignItems="center" justifyContent="space-between">
-        <Box display="flex" alignItems="center" gap={1}>
+
+        {/* Search and Filter Section - Mobile optimized */}
+        <Box 
+          display="flex" 
+          alignItems="center" 
+          gap={1}
+          sx={{ 
+            width: isMobile ? "100%" : "auto",
+            justifyContent: isMobile ? "space-between" : "flex-start",
+            mt: isMobile ? 1 : 0
+          }}
+        >
           <Typography
             variant="body2"
             sx={{
-              fontSize: "16px",
+              fontSize: isMobile ? "14px" : "16px",
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               color: "#485E75",
+              whiteSpace: "nowrap",
             }}
           >
             {totalProducts} {TabType === "sku" ? "SKUs" : "Parent ASINs"}
@@ -779,7 +792,7 @@ const MyProductList = ({
               <Button
                 variant="outlined"
                 startIcon={<FilterAltIcon />}
-                onClick={handleFilterClick} 
+                onClick={handleFilterClick}
                 sx={{
                   backgroundColor: "rgba(10,111,232,0.1)",
                   color: "rgb(10, 111, 232)",
@@ -787,154 +800,84 @@ const MyProductList = ({
                   borderRadius: "12px",
                   padding: "4px 12px",
                   textTransform: "capitalize",
-                  fontSize: "14px",
+                  fontSize: isMobile ? "12px" : "14px",
+                  minWidth: "auto",
                 }}
               >
-                Filter
+                {isSmallMobile ? "" : "Filter"}
               </Button>
             </Badge>
-            {/* Filter Popover */}
-            {/* Filter Popover */}
-            <Popover
-              open={Boolean(anchorEl)}
-              anchorEl={anchorEl}
-              onClose={handlePopoverClose}
-              anchorOrigin={{
-                vertical: "bottom",
-                horizontal: "left",
-              }}
-              transformOrigin={{
-                vertical: "top",
-                horizontal: "left",
-              }}
-            >
-              <Box p={2} display="flex" flexDirection="column" gap={1}>
+
+            {/* Search */}
+            <Box sx={{ marginLeft: "5px" }}>
+              {!showSearch ? (
+                <IconButton onClick={() => setShowSearch(true)} sx={{ p: 0.5 }}>
+                  <SearchIcon sx={{ color: "#485E75", fontSize: isMobile ? "20px" : "24px" }} />
+                </IconButton>
+              ) : (
                 <TextField
-                  label="Parent SKU"
+                  value={searchQuery}
+                  onChange={handleSearchChange}
+                  variant="outlined"
                   size="small"
-                  fullWidth
-                  value={parentAsin}
-                  onChange={(e) => setParentAsin(e.target.value)}
+                  placeholder="Search..."
+                  autoFocus
+                  sx={{
+                    width: isMobile ? 150 : 190,
+                    "& .MuiInputBase-root": {
+                      height: 32, 
+                      fontSize: "13px",
+                    },
+                    "& input": {
+                      padding: "6px 8px", 
+                    },
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <IconButton
+                          onClick={() => setShowSearch(false)}
+                          size="small"
+                          sx={{ p: 0.5 }}
+                        >
+                          <SearchIcon
+                            sx={{ color: "#485E75", fontSize: "18px" }}
+                          />
+                        </IconButton>
+                      </InputAdornment>
+                    ),
+                  }}
                 />
-                {TabType === "sku" && (
-                  <TextField
-                    label="Child SKU"
-                    size="small"
-                    fullWidth
-                    value={skuAsin}
-                    onChange={(e) => setSkuAsin(e.target.value)}
-                  />
-                )}
-                <Box display="flex" justifyContent="flex-end" gap={1}>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={handleClear}
-                    sx={{
-                      fontFamily:
-                        "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                      fontWeight: 700,
-                      fontSize: "14px",
-                      textTransform: "capitalize",
-                      color: hasChanges
-                        ? "rgb(10, 111, 232)"
-                        : "rgba(0, 0, 0, 0.26)",
-                      borderColor: hasChanges
-                        ? "rgb(10, 111, 232)"
-                        : "rgba(0, 0, 0, 0.12)",
-                      "&:hover": {
-                        borderColor: hasChanges
-                          ? "rgb(2, 83, 182)"
-                          : "rgba(0, 0, 0, 0.12)",
-                        color: hasChanges
-                          ? "rgb(2, 83, 182)"
-                          : "rgba(0, 0, 0, 0.26)",
-                      },
-                    }}
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    variant="contained"
-                    size="small"
-                    onClick={() =>
-                      handleApplyFilter({ parentAsin, skuAsin }, true)
-                    } 
-                    disabled={!hasChanges}
-                    sx={{
-                      fontFamily:
-                        "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
-                      fontSize: "14px",
-                      textTransform: "capitalize",
-                      color: "white",
-                      backgroundColor: hasChanges
-                        ? "rgb(10, 111, 232)"
-                        : "rgba(0, 0, 0, 0.12)",
-                      "&:hover": {
-                        backgroundColor: hasChanges
-                          ? "rgb(2, 83, 182)"
-                          : "rgba(0, 0, 0, 0.12)",
-                        color: "white",
-                      },
-                    }}
-                  >
-                    Apply Filters
-                  </Button>
-                </Box>
-              </Box>
-            </Popover>
-            {/* <FilterParentSku
-          open={isFilterOpen}
-          anchorEl={anchorEl}
-          onClose={handleFilterClose}
-          onApply={handleApplyFilter}
-          isParentType={TabType}
-        /> */}
-          </Box>
-          <Box sx={{ marginLeft: "5px" }}>
-            {!showSearch ? (
-              <IconButton onClick={() => setShowSearch(true)} sx={{ p: 0.5 }}>
-                <SearchIcon sx={{ color: "#485E75" }} />
-              </IconButton>
-            ) : (
-              <TextField
-                value={searchQuery}
-                onChange={handleSearchChange}
-                variant="outlined"
-                size="small"
-                placeholder="Search..."
-                autoFocus
-                sx={{
-                  width: 190,
-                  "& .MuiInputBase-root": {
-                    height: 32, 
-                    fontSize: "13px",
-                  },
-                  "& input": {
-                    padding: "6px 8px", 
-                  },
-                }}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <IconButton
-                        onClick={() => setShowSearch(false)}
-                        size="small"
-                        sx={{ p: 0.5 }}
-                      >
-                        <SearchIcon
-                          sx={{ color: "#485E75", fontSize: "18px" }}
-                        />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-              />
-            )}
+              )}
+            </Box>
           </Box>
         </Box>
-        {/* Column Tabs */}
-        <Box display="flex" alignItems="center" gap={0.5}>
+      </Box>
+
+      {/* Column Tabs - Mobile optimized with horizontal scroll */}
+      <Box 
+        sx={{ 
+          overflowX: "auto",
+          whiteSpace: "nowrap",
+          mb: 2,
+          "&::-webkit-scrollbar": {
+            height: "4px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#ccc",
+            borderRadius: "2px",
+          },
+        }}
+      >
+        <Box 
+          display="flex" 
+          alignItems="center" 
+          gap={0.5}
+          sx={{ 
+            pb: 1,
+            minWidth: isMobile ? "600px" : "auto"
+          }}
+        >
           <Button
             variant={activeColumnCategoryTab === 0 ? "contained" : "outlined"}
             size="small"
@@ -942,7 +885,7 @@ const MyProductList = ({
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               textTransform: "none",
-              fontSize: "12px",
+              fontSize: isMobile ? "11px" : "12px",
               mr: 0.5,
               color: activeColumnCategoryTab === 0 ? "#fff" : "#485E75",
               backgroundColor:
@@ -950,6 +893,7 @@ const MyProductList = ({
               border:
                 activeColumnCategoryTab === 0 ? "none" : `1px solid #D3D3D3`,
               borderRadius: "8px",
+              minWidth: isMobile ? "80px" : "auto",
             }}
             onClick={() => handleColumnCategoryClick(0)}
           >
@@ -962,7 +906,7 @@ const MyProductList = ({
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               textTransform: "none",
-              fontSize: "12px",
+              fontSize: isMobile ? "11px" : "12px",
               mr: 0.5,
               color: activeColumnCategoryTab === 1 ? "#fff" : "#485E75",
               backgroundColor:
@@ -970,6 +914,7 @@ const MyProductList = ({
               border:
                 activeColumnCategoryTab === 1 ? "none" : `1px solid #D3D3D3`,
               borderRadius: "8px",
+              minWidth: isMobile ? "120px" : "auto",
             }}
             onClick={() => handleColumnCategoryClick(1)}
           >
@@ -982,7 +927,7 @@ const MyProductList = ({
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               textTransform: "none",
-              fontSize: "12px",
+              fontSize: isMobile ? "11px" : "12px",
               mr: 0.5,
               color: activeColumnCategoryTab === 2 ? "#fff" : "#485E75",
               backgroundColor:
@@ -990,6 +935,7 @@ const MyProductList = ({
               border:
                 activeColumnCategoryTab === 2 ? "none" : `1px solid #D3D3D3`,
               borderRadius: "8px",
+              minWidth: isMobile ? "70px" : "auto",
             }}
             onClick={() => handleColumnCategoryClick(2)}
           >
@@ -1002,7 +948,7 @@ const MyProductList = ({
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               textTransform: "none",
-              fontSize: "12px",
+              fontSize: isMobile ? "11px" : "12px",
               mr: 0.5,
               color: activeColumnCategoryTab === 3 ? "#fff" : "#485E75",
               backgroundColor:
@@ -1010,6 +956,7 @@ const MyProductList = ({
               border:
                 activeColumnCategoryTab === 3 ? "none" : `1px solid #D3D3D3`,
               borderRadius: "8px",
+              minWidth: isMobile ? "60px" : "auto",
             }}
             onClick={() => handleColumnCategoryClick(3)}
           >
@@ -1022,7 +969,7 @@ const MyProductList = ({
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               textTransform: "none",
-              fontSize: "12px",
+              fontSize: isMobile ? "11px" : "12px",
               mr: 0.5,
               color: activeColumnCategoryTab === 4 ? "#fff" : "#485E75",
               backgroundColor:
@@ -1030,6 +977,7 @@ const MyProductList = ({
               border:
                 activeColumnCategoryTab === 4 ? "none" : `1px solid #D3D3D3`,
               borderRadius: "8px",
+              minWidth: isMobile ? "80px" : "auto",
             }}
             onClick={() => handleColumnCategoryClick(4)}
           >
@@ -1042,7 +990,7 @@ const MyProductList = ({
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               textTransform: "none",
-              fontSize: "12px",
+              fontSize: isMobile ? "11px" : "12px",
               mr: 0.5,
               color: activeColumnCategoryTab === 5 ? "#fff" : "#485E75",
               backgroundColor:
@@ -1050,6 +998,7 @@ const MyProductList = ({
               border:
                 activeColumnCategoryTab === 5 ? "none" : `1px solid #D3D3D3`,
               borderRadius: "8px",
+              minWidth: isMobile ? "70px" : "auto",
             }}
             onClick={() => handleColumnCategoryClick(5)}
           >
@@ -1063,22 +1012,18 @@ const MyProductList = ({
               fontFamily:
                 "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
               textTransform: "none",
-              fontSize: "12px",
+              fontSize: isMobile ? "11px" : "12px",
               color: "#485E75",
               borderRadius: "8px",
+              minWidth: isMobile ? "auto" : "auto",
             }}
             onClick={() => {
               handleCustomizedPage();
             }}
           >
-            Customize
+            {isSmallMobile ? "" : "Customize"}
           </Button>
-          {/* {isCustomizedPage && (
-                          <CustomizedProd
-                              open={isCustomizedPage}
-                              onClose={() => setIsCustomizedPage(false)}
-                          />
-                      )} */}
+          
           {!showSearch && (
             <Box>
               <ProductExport products={products} />
@@ -1086,21 +1031,133 @@ const MyProductList = ({
           )}
         </Box>
       </Box>
+
+      {/* Filter Popover */}
+      <Popover
+        open={Boolean(anchorEl)}
+        anchorEl={anchorEl}
+        onClose={handlePopoverClose}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        transformOrigin={{
+          vertical: "top",
+          horizontal: "left",
+        }}
+        sx={{
+          '& .MuiPopover-paper': {
+            width: isMobile ? "90vw" : "400px",
+            maxWidth: "400px",
+          }
+        }}
+      >
+        <Box p={2} display="flex" flexDirection="column" gap={1}>
+          <TextField
+            label="Parent SKU"
+            size="small"
+            fullWidth
+            value={parentAsin}
+            onChange={(e) => setParentAsin(e.target.value)}
+          />
+          {TabType === "sku" && (
+            <TextField
+              label="Child SKU"
+              size="small"
+              fullWidth
+              value={skuAsin}
+              onChange={(e) => setSkuAsin(e.target.value)}
+            />
+          )}
+          <Box display="flex" justifyContent="flex-end" gap={1}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={handleClear}
+              sx={{
+                fontFamily:
+                  "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+                fontWeight: 700,
+                fontSize: "14px",
+                textTransform: "capitalize",
+                color: hasChanges
+                  ? "rgb(10, 111, 232)"
+                  : "rgba(0, 0, 0, 0.26)",
+                borderColor: hasChanges
+                  ? "rgb(10, 111, 232)"
+                  : "rgba(0, 0, 0, 0.12)",
+                "&:hover": {
+                  borderColor: hasChanges
+                    ? "rgb(2, 83, 182)"
+                    : "rgba(0, 0, 0, 0.12)",
+                  color: hasChanges
+                    ? "rgb(2, 83, 182)"
+                    : "rgba(0, 0, 0, 0.26)",
+                },
+              }}
+            >
+              Clear
+            </Button>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={() =>
+                handleApplyFilter({ parentAsin, skuAsin }, true)
+              }
+              disabled={!hasChanges}
+              sx={{
+                fontFamily:
+                  "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
+                fontSize: "14px",
+                textTransform: "capitalize",
+                color: "white",
+                backgroundColor: hasChanges
+                  ? "rgb(10, 111, 232)"
+                  : "rgba(0, 0, 0, 0.12)",
+                "&:hover": {
+                  backgroundColor: hasChanges
+                    ? "rgb(2, 83, 182)"
+                    : "rgba(0, 0, 0, 0.12)",
+                  color: "white",
+                },
+              }}
+            >
+              Apply Filters
+            </Button>
+          </Box>
+        </Box>
+      </Popover>
+
+      {/* Filter Chips and Export */}
       <Box
         display="flex"
         justifyContent="space-between"
         alignItems="center"
         flexWrap="wrap"
-        sx={{ paddingBottom: "5px", gap: 1 }}
+        sx={{ 
+          paddingBottom: "5px", 
+          gap: 1,
+          flexDirection: isMobile ? "column" : "row",
+          alignItems: isMobile ? "flex-start" : "center"
+        }}
       >
         {/* Left - Filter Chips */}
-        <Box display="flex" gap={1} flexWrap="wrap" sx={{ marginTop: "7px" }}>
+        <Box 
+          display="flex" 
+          gap={1} 
+          flexWrap="wrap" 
+          sx={{ 
+            marginTop: "7px",
+            maxWidth: isMobile ? "100%" : "70%",
+            overflowX: isMobile ? "auto" : "visible"
+          }}
+        >
           {filterParent && (
             <Chip
               label={`Parent SKU: ${filterParent}`}
               onDelete={() =>
                 handleApplyFilter({ parentAsin: "", skuAsin: filterSku }, false)
-              } 
+              }
               deleteIcon={<CloseIcon sx={{ color: "#fff" }} />}
               size="small"
               sx={{
@@ -1121,7 +1178,7 @@ const MyProductList = ({
                   { parentAsin: filterParent, skuAsin: "" },
                   false
                 )
-              } 
+              }
               deleteIcon={<CloseIcon sx={{ color: "#fff" }} />}
               size="small"
               sx={{
@@ -1155,10 +1212,32 @@ const MyProductList = ({
             </Button>
           )}
         </Box>
+        
         {/* Right - Export Button */}
-        {showSearch && <ProductExport products={products} />}
+        {showSearch && (
+          <Box sx={{ 
+            mt: isMobile ? 1 : 0,
+            alignSelf: isMobile ? "flex-end" : "auto"
+          }}>
+            <ProductExport products={products} />
+          </Box>
+        )}
       </Box>
-      <Box sx={{ minHeight: 200 }}>
+
+      {/* Table Container with Horizontal Scroll */}
+      <Box 
+        sx={{ 
+          minHeight: 200, 
+          overflowX: "auto",
+          "&::-webkit-scrollbar": {
+            height: "8px",
+          },
+          "&::-webkit-scrollbar-thumb": {
+            backgroundColor: "#ccc",
+            borderRadius: "4px",
+          },
+        }}
+      >
         {loading ? (
           <Box
             sx={{
@@ -1168,6 +1247,7 @@ const MyProductList = ({
               alignItems: "center",
               minHeight: 300,
               width: "100%",
+              minWidth: isMobile ? "800px" : "100%",
               gap: 2,
               backgroundColor: "rgba(255, 255, 255, 0.9)",
               borderRadius: "4px",
@@ -1186,48 +1266,71 @@ const MyProductList = ({
                 fontWeight: 500,
                 color: "#1A2027",
                 mb: 1,
+                fontSize: isMobile ? "16px" : "20px",
+                textAlign: "center"
               }}  
             >
               Fetching Data, Please wait a moment...
             </Typography>
           </Box>
         ) : (
-          <MyProductTable
-            products={products}
-            visibleColumns={visibleColumns}
-            onSort={handleSortChange}
-            isParentType={TabType}
-            imageSize={selectedImageSize}
-          />
+          <Box sx={{ minWidth: isMobile ? "800px" : "100%" }}>
+            <MyProductTable
+              products={products}
+              visibleColumns={visibleColumns}
+              onSort={handleSortChange}
+              isParentType={TabType}
+              imageSize={selectedImageSize}
+              country={country}
+            />
+          </Box>
         )}
       </Box>
-      {/* Pagination */}
+
+      {/* Pagination - Mobile optimized */}
       <Box
         display="flex"
         alignItems="center"
         mt={2}
-        sx={{ borderTop: "1px solid #eee", pt: 1 }}
+        sx={{ 
+          borderTop: "1px solid #eee", 
+          pt: 1,
+          flexDirection: isMobile ? "column" : "row",
+          gap: isMobile ? 2 : 0
+        }}
       >
         {/* Centered Pagination */}
-        <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center" }}>
+        <Box sx={{ 
+          flexGrow: 1, 
+          display: "flex", 
+          justifyContent: "center",
+          order: isMobile ? 2 : 1
+        }}>
           <Pagination
             count={Math.ceil(totalProducts / rowsPerPage)}
             page={page}
             onChange={(event, newPage) => {
               setPage(newPage);
               navigate(`/Home?page=${newPage}&&rowsPerPage=${rowsPerPage}`);
-              fetchMyProducts(newPage); 
+              fetchMyProducts(newPage);
             }}
             size="small"
             color="primary"
+            siblingCount={isMobile ? 0 : 1}
+            boundaryCount={isMobile ? 1 : 1}
           />
         </Box>
+        
         {/* Right-aligned Rows Per Page Select */}
         <Select
           value={rowsPerPage}
           onChange={handleRowsPerPageChange}
           size="small"
-          sx={{ minWidth: 100, ml: "auto" }}
+          sx={{ 
+            minWidth: isMobile ? "100%" : 100, 
+            ml: isMobile ? 0 : "auto",
+            order: isMobile ? 1 : 2
+          }}
         >
           <MenuItem value={10}>10 / page</MenuItem>
           <MenuItem value={25}>25 / page</MenuItem>
@@ -1237,4 +1340,5 @@ const MyProductList = ({
     </Box>
   );
 };
+
 export default MyProductList;
