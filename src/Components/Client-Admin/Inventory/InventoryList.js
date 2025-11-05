@@ -18,25 +18,35 @@ import {
   Pagination,
   Tooltip,
   Grid,
-  Modal,
-  Slide,
   Menu,
   IconButton,
+  useMediaQuery,
+  useTheme,
+  Collapse,
+  Avatar,
+  Stack,
+  Divider,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  FormControl,
 } from "@mui/material";
-import { FilterList, Refresh, Visibility } from "@mui/icons-material";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Refresh, Visibility, ExpandMore, ExpandLess } from "@mui/icons-material";
+import { useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
-import DottedCircleLoading from "../../Loading/DotLoading"; // Assuming this is your loading spinner component
-import AddIcon from "@mui/icons-material/Add"; // Import the AddIcon
-import FilterInventory from "../Inventory/FilterInventory";
-
-import soon from "../../assets/soon.png"; // Fallback image
+import DottedCircleLoading from "../../Loading/DotLoading";
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import InventoryChannel from "./InventoryCahnnel";
+import soon from "../../assets/soon.png";
 
 const InventoryList = ({ fetchOrdersFromParent }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
   const location = useLocation();
   const navigate = useNavigate();
   const [inventoryList, setInventory] = useState([]);
@@ -48,42 +58,39 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [orderCount, setOrderCount] = useState(0);
   const [customStatus, setCustomStatus] = useState([]);
-  const [searchQuery, setSearchQuery] = useState(""); // Changed from searchTerm to searchQuery for consistency
+  const [searchQuery, setSearchQuery] = useState("");
   const [logoMarket, setLogoMarket] = useState([]);
-  const [loading, setLoading] = useState(true); // Initialize loading as true
+  const [loading, setLoading] = useState(true);
   const [showFilter, setShowFilter] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState({
     id: "all",
     name: "All Channels",
   });
-
   const [open, setOpen] = useState(false);
-  const queryParams = new URLSearchParams(window.location.search);
+  const [expandedInventory, setExpandedInventory] = useState(null); // For mobile card expand
 
+  const queryParams = new URLSearchParams(window.location.search);
   const initialPage = parseInt(queryParams.get("page")) || 1;
   const [page, setPage] = useState(initialPage);
-  // Removed `market` state as it wasn't clearly used.
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
-    // Re-fetch orders after modal close to ensure data is fresh if something was edited/added
     fetchOrderData(selectedCategory.id, page, rowsPerPage);
   };
 
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
-    navigate(`/Home/orders?page=${newPage}&rowsPerPage=${rowsPerPage}`); // Update the URL
+    navigate(`/Home/inventory?page=${newPage}&rowsPerPage=${rowsPerPage}`);
   };
 
   const handleRowsPerPageChange = (event) => {
     const newRowsPerPage = parseInt(event.target.value, 10);
     setRowsPerPage(newRowsPerPage);
-    setPage(1); // Reset to the first page when rows per page changes
-    navigate(`/Home/orders?page=1&rowsPerPage=${newRowsPerPage}`); // Update URL
+    setPage(1);
+    navigate(`/Home/inventory?page=1&rowsPerPage=${newRowsPerPage}`);
   };
 
-  // Ref to track previous params for comparison
   const prevParams = useRef({
     selectedCategoryId: selectedCategory.id,
     page,
@@ -92,10 +99,15 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
     searchQuery,
   });
 
-  // Function to fetch data
-  const fetchOrderData = async (marketId, currentPage, currentRowsPerPage, currentSortConfig, currentSearchQuery) => {
-    setLoading(true); // Set loading to true at the start of every fetch
-    const validRowsPerPage = currentRowsPerPage && currentRowsPerPage > 0 ? currentRowsPerPage : 25; // Default to 25
+  const fetchOrderData = async (
+    marketId,
+    currentPage,
+    currentRowsPerPage,
+    currentSortConfig,
+    currentSearchQuery
+  ) => {
+    setLoading(true);
+    const validRowsPerPage = currentRowsPerPage > 0 ? currentRowsPerPage : 25;
     const skip = (currentPage - 1) * validRowsPerPage;
 
     try {
@@ -106,10 +118,11 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
         userIds = data.id;
       }
 
-      // Use the marketplaceId passed to the function or default
-      const marketplaceIdToUse = marketId || (localStorage.getItem("selectedCategory")
-        ? JSON.parse(localStorage.getItem("selectedCategory")).id
-        : "all");
+      const marketplaceIdToUse =
+        marketId ||
+        (localStorage.getItem("selectedCategory")
+          ? JSON.parse(localStorage.getItem("selectedCategory")).id
+          : "all");
 
       const response = await axios.post(
         `${process.env.REACT_APP_IP}fetchInventryList/`,
@@ -124,7 +137,7 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
         }
       );
 
-      if (response.data.data.inventry_list) {
+      if (response.data?.data?.inventry_list) {
         setInventory(response.data.data.inventry_list);
         setCustomStatus(response.data.data.status);
         setOrderCount(response.data.data.total_count);
@@ -135,21 +148,20 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
             : []
         );
       } else {
-        setInventory([]); // Ensure inventoryList is empty if no data is returned
+        setInventory([]);
         setOrderCount(0);
         setTotalPages(1);
       }
     } catch (error) {
       console.error("Error fetching inventory:", error);
-      setInventory([]); // Clear inventory on error
+      setInventory([]);
       setOrderCount(0);
       setTotalPages(1);
     } finally {
-      setLoading(false); // Set loading to false once fetch is complete (success or error)
+      setLoading(false);
     }
   };
 
-  // Initial fetch on component mount
   useEffect(() => {
     const storedCategory = localStorage.getItem("selectedCategory");
     let initialCategory = { id: "all", name: "All Channels" };
@@ -158,21 +170,18 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
       setSelectedCategory(initialCategory);
     }
 
-    // Set initial search query from URL state if available
-    if (location.state && location.state.searchQuery) {
+    if (location.state?.searchQuery) {
       setSearchQuery(location.state.searchQuery);
     }
 
-    // Perform the initial data fetch using current states
     fetchOrderData(
       initialCategory.id,
       page,
       rowsPerPage,
       sortConfig,
-      location.state?.searchQuery || "" // Use search query from location state for initial fetch if present
+      location.state?.searchQuery || ""
     );
 
-    // Update prevParams after the initial fetch
     prevParams.current = {
       selectedCategoryId: initialCategory.id,
       page,
@@ -180,9 +189,8 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
       sortConfig,
       searchQuery: location.state?.searchQuery || "",
     };
-  }, []); // Empty dependency array means this runs only once on mount
+  }, []);
 
-  // Effect to re-fetch data when relevant state changes
   useEffect(() => {
     const shouldFetch =
       selectedCategory.id !== prevParams.current.selectedCategoryId ||
@@ -204,354 +212,312 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
     }
   }, [selectedCategory.id, page, rowsPerPage, sortConfig, searchQuery]);
 
-
-  // Filter orders (this client-side filtering might not be needed if API handles search_query)
-  // Re-evaluating this based on your API structure. The API already takes `search_query`.
-  // So, this local filtering is likely redundant or should be removed.
-  // const filteredOrders = inventoryList.filter((order) => {
-  //   const productTitle = order.product_title ? order.product_title.toLowerCase() : "";
-  //   const sku = order.sku ? order.sku.toLowerCase() : "";
-  //   return (
-  //     productTitle.includes(searchQuery.toLowerCase()) ||
-  //     sku.includes(searchQuery.toLowerCase())
-  //   );
-  // });
-
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
-    setPage(1); // Reset page to 1 on new search
+    setPage(1);
   };
 
-  // Dropdown open menu
   const handleOpenMenu = (event, column) => {
     setAnchorEl(event.currentTarget);
-    setCurrentColumn(column); // Set column for sorting
+    setCurrentColumn(column);
   };
 
   const handleSelectSort = (key, direction) => {
     setSortConfig({ key, direction });
-    setPage(1); // Reset page to 1 when sorting is applied
-    setAnchorEl(null); // Close the menu after selection
-  };
-
-  const handleCloseMenu = () => {
+    setPage(1);
     setAnchorEl(null);
   };
 
+  const handleCloseMenu = () => setAnchorEl(null);
+
   const handleProduct = (category) => {
-    setSelectedCategory(category); // Update the selected category
-    setPage(1); // Reset page to 1 when category changes
-    localStorage.setItem("selectedCategory", JSON.stringify(category)); // Persist selection
+    setSelectedCategory(category);
+    setPage(1);
+    localStorage.setItem("selectedCategory", JSON.stringify(category));
   };
 
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
-    // You would typically re-fetch data with these new filters
-    // This might require extending `fetchOrderData` to accept filter objects.
   };
 
- const handleResetChange = () => {
-  console.log("Reset triggered");
-  setSearchQuery("");
-  setSortConfig({ key: "", direction: "asc" });
-  setPage(1);
-  toast.success("Filters reset successfully!", {
-    position: "top-right",
-    autoClose: 2000,
-    hideProgressBar: false,
-    closeOnClick: true,
-    pauseOnHover: true,
-    draggable: true,
-  });
-};
+  const handleResetChange = () => {
+    setSearchQuery("");
+    setSortConfig({ key: "", direction: "asc" });
+    setPage(1);
+    toast.success("Filters reset successfully!", {
+      position: "top-right",
+      autoClose: 2000,
+      hideProgressBar: false,
+      closeOnClick: true,
+    });
+  };
 
-  return (
-    <Box sx={{ flex: 1, width: "100%" }}>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          my: 2,
-          justifyContent: "flex-end",
-          alignItems: "center",
-          position: "fixed",
-          top: 0,
-          right: 0,
-          marginTop: "20px",
-          width: "108%",
-          backgroundColor: "white",
-          zIndex: 100,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            my: 2,
-            marginRight: "4%",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            marginTop: "6%",
-            width: "100%",
-          }}
+  // 📱 Mobile: Render inventory as expandable card
+  const renderMobileInventoryCard = (item, index) => {
+    return (
+      <Card key={item.id} sx={{ mb: 2, boxShadow: 2 }}>
+        <CardContent
+          sx={{ p: 2, "&:last-child": { pb: 2 }, cursor: "pointer" }}
+          onClick={() => setExpandedInventory(expandedInventory === index ? null : index)}
         >
-          {/* Inventory Channel component for marketplace selection */}
-          <Box sx={{ marginTop: "-7px" }}>
-            <InventoryChannel handleProduct={handleProduct} />
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {item.sku || "N/A"}
+            </Typography>
+            <IconButton size="small">
+              {expandedInventory === index ? <ExpandLess /> : <ExpandMore />}
+            </IconButton>
           </Box>
 
-          <TextField
-            size="small"
-            placeholder="Search by Product Title, Sku..."
-            value={searchQuery}
-            onChange={handleSearchChange}
-            sx={{
-              width: 300,
-              "& input": {
-                fontSize: "14px",
-              },
-            }}
-          />
+          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+            <Avatar
+              src={item.image_url || soon}
+              alt="Product"
+              variant="rounded"
+              sx={{ width: 50, height: 50, mr: 2 }}
+            />
+            <Typography variant="body2" sx={{ flex: 1 }}>
+              {item.product_title}
+            </Typography>
+          </Box>
 
-          {/* Filter button (currently commented out functionality for FilterInventory) */}
-          {/* <Tooltip title="Filter" arrow>
-            <Button
-              variant="outlined"
-              color="primary"
-              sx={{
-                backgroundColor: "#000080",
-                color: "white",
-                minWidth: "auto",
-                padding: "6px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                "&:hover": {
-                  backgroundColor: "darkblue",
-                },
-              }}
-              onClick={() => setShowFilter(!showFilter)}
+          <Collapse in={expandedInventory === index}>
+            <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #eee" }}>
+              <Grid container spacing={1}>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Quantity
+                  </Typography>
+                  <Typography variant="body2">{item.quantity || 0}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Price
+                  </Typography>
+                  <Typography variant="body2">
+                    {item.price ? `$${parseFloat(item.price).toFixed(2)}` : "$0.00"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Channel
+                  </Typography>
+                  <Typography variant="body2">{item.marketplace_name || "N/A"}</Typography>
+                </Grid>
+                <Grid item xs={12} sx={{ mt: 1 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Visibility />}
+                    sx={{ textTransform: "none" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      // Optional: navigate to detail page
+                      // navigate(`/Home/inventory/${item.id}`);
+                    }}
+                  >
+                    View Details
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          </Collapse>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // 💻 Desktop: Render table
+  const renderDesktopTable = () => (
+    <TableContainer
+      component={Paper}
+      sx={{
+        maxHeight: "70vh",
+        overflow: "auto",
+        "&::-webkit-scrollbar": {
+          width: "4px",
+          height: "4px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: "#888",
+          borderRadius: "10px",
+        },
+      }}
+    >
+      <Table stickyHeader sx={{ minWidth: isTablet ? "100%" : "650px" }}>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Image</TableCell>
+            <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>SKU</TableCell>
+            <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Product Title</TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", textAlign: "center", cursor: "pointer" }}
+              onClick={(e) => handleOpenMenu(e, "quantity")}
             >
-              <FilterList sx={{ color: "white", fontSize: "20px" }} />
-            </Button>
+              Quantity <MoreVertIcon sx={{ fontSize: 14 }} />
+            </TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", textAlign: "center", cursor: "pointer" }}
+              onClick={(e) => handleOpenMenu(e, "price")}
+            >
+              Price <MoreVertIcon sx={{ fontSize: 14 }} />
+            </TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {inventoryList.map((item) => (
+            <TableRow
+              key={item.id}
+              hover
+              sx={{ cursor: "pointer" }}
+              onClick={() => {
+                // Optional: navigate to detail
+                // navigate(`/Home/inventory/${item.id}`);
+              }}
+            >
+              <TableCell sx={{ textAlign: "center" }}>
+                <img
+                  src={item.image_url || soon}
+                  alt="Product"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    objectFit: "cover",
+                    borderRadius: 5,
+                  }}
+                />
+              </TableCell>
+              <TableCell sx={{ textAlign: "center" }}>{item.sku || "N/A"}</TableCell>
+              <TableCell sx={{ textAlign: "center" }}>{item.product_title}</TableCell>
+              <TableCell sx={{ textAlign: "center" }}>{item.quantity || 0}</TableCell>
+              <TableCell sx={{ textAlign: "center" }}>
+                {item.price ? `$${parseFloat(item.price).toFixed(2)}` : "$0.00"}
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
 
-            {showFilter && (
-              <Paper
-                elevation={3}
+  return (
+    <Box sx={{ flex: 1, width: "100%", p: { xs: 1, sm: 2 } }}>
+      {/* 🔝 Sticky Top Controls */}
+      <Box
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          bgcolor: "white",
+          pt: 2,
+          pb: 1,
+          mb: 2,
+          borderBottom: "1px solid #eee",
+        }}
+      >
+        <Grid container spacing={2} alignItems="center" justifyContent="flex-end">
+          <Grid item xs={12} sm={4} md={3}>
+            <InventoryChannel
+              handleProduct={handleProduct}
+              sx={{ width: "100%" }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm={4} md={3}>
+            <TextField
+              size="small"
+              placeholder="Search by Product Title, SKU..."
+              value={searchQuery}
+              onChange={handleSearchChange}
+              fullWidth
+              sx={{ "& input": { fontSize: "14px" } }}
+            />
+          </Grid>
+
+          <Grid item xs={12} sm="auto">
+            <Tooltip title="Reset" arrow>
+              <Button
+                variant="outlined"
+                onClick={handleResetChange}
+                fullWidth
                 sx={{
-                  position: "absolute",
-                  top: "50px",
-                  marginTop: "6%",
-                  right: "30px",
-                  width: "300px",
-                  padding: "10px",
-                  backgroundColor: "white",
-                  zIndex: 1000,
+                  minWidth: "auto",
+                  bgcolor: "#000080",
+                  color: "white",
+                  border: "none",
+                  p: 1,
+                  "&:hover": { bgcolor: "darkblue" },
                 }}
               >
-                <Typography variant="h6">Filter Orders</Typography>
-                <FilterInventory onFilterChange={handleFilterChange} />
-              </Paper>
-            )}
-          </Tooltip> */}
+                <Refresh />
+              </Button>
+            </Tooltip>
+          </Grid>
 
-          <Tooltip title="Reset" arrow>
-            <Button
-              variant="outlined"
-              sx={{
-                backgroundColor: "#000080",
-                minWidth: "auto",
-                padding: "6px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                "&:hover": {
-                  backgroundColor: "darkblue",
-                },
-              }}
-              onClick={handleResetChange} // Directly call handleResetChange
-            >
-              <Refresh sx={{ color: "white", fontSize: "20px" }} />
-            </Button>
-          </Tooltip>
-
-          <Typography variant="body2">
-            Total Inventory: {orderCount ? orderCount : "0"}
-          </Typography>
-        </Box>
+          <Grid item xs={12} sm="auto">
+            <Typography variant="body2" sx={{ fontWeight: "bold", textAlign: "center" }}>
+              Total Inventory: {orderCount || "0"}
+            </Typography>
+          </Grid>
+        </Grid>
       </Box>
 
-      <Box sx={{ paddingTop: "150px" }}>
+      {/* 📦 Inventory List */}
+      <Box sx={{ mt: 2 }}>
         {loading ? (
-          // Show loading indicator when loading is true
-          <div style={{ textAlign: "center", padding: "20px" }}>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
             <DottedCircleLoading />
-          </div>
+          </Box>
         ) : inventoryList.length === 0 ? (
-          // Show no data message if not loading and inventoryList is empty
-          <div style={{ textAlign: "center", padding: "20px" }}>
-            No Data Found
-          </div>
+          <Typography variant="h6" align="center" color="text.secondary" sx={{ mt: 4 }}>
+            No Inventory Found
+          </Typography>
+        ) : isMobile ? (
+          // 📱 Mobile: Cards
+          inventoryList.map((item, index) => renderMobileInventoryCard(item, index))
         ) : (
-          // Show the table when data is available and not loading
-          <TableContainer
-            component={Paper}
-            sx={{
-              maxHeight: "70vh",
-              display: "flex",
-              justifyContent: "center",
-              overflowY: "overlay",
-              overflowX: "overlay",
-              "&::-webkit-scrollbar": {
-                height: "2px",
-                width: "2px",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: "#888",
-                borderRadius: "10px",
-              },
-              "&::-webkit-scrollbar-thumb:hover": {
-                backgroundColor: "#555",
-              },
-              "&::-webkit-scrollbar-track": {
-                backgroundColor: "#f1f1f1",
-                borderRadius: "10px",
-              },
-            }}
-          >
-            <Table sx={{ minWidth: 650, margin: "0 auto" }}>
-              <TableHead
-                sx={{
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 1,
-                  backgroundColor: "#f6f6f6",
-                }}
-              >
-                <TableRow>
-                  <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Image</TableCell>
-                  <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>SKU</TableCell>
-                  <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Product Title</TableCell>
-                  <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>
-                    Quantity
-                    <IconButton onClick={(e) => handleOpenMenu(e, "quantity")}>
-                      <MoreVertIcon sx={{ fontSize: "14px" }} />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>
-                    Price
-                    <IconButton onClick={(e) => handleOpenMenu(e, "price")}> {/* Changed to 'price' for consistency */}
-                      <MoreVertIcon sx={{ fontSize: "14px" }} />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {inventoryList.map((order) => {
-                  const marketplace = logoMarket.find(
-                    (market) => market.name === order.marketplace_name
-                  );
-
-                  return (
-                    <TableRow key={order.id} hover style={{ cursor: "pointer" }}>
-                      <TableCell sx={{ textAlign: "center" }}>
-                        <img
-                          src={order.image_url || soon}
-                          alt="Product"
-                          style={{
-                            width: 50,
-                            height: 50,
-                            objectFit: "cover",
-                            borderRadius: 5,
-                          }}
-                        />
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          textAlign: "center",
-                          minWidth: 120,
-                          width: 120,
-                          wordBreak: "break-word",
-                          whiteSpace: "normal",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {order.sku || "N/A"}
-                      </TableCell>
-                      <TableCell sx={{ textAlign: "center", minWidth: 280, width: 280 }}>
-                        {order.product_title}
-                      </TableCell>
-                      <TableCell sx={{ textAlign: "center", paddingLeft: "3px" }}>
-                        {order.quantity || 0}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          paddingLeft: "3px",
-                          textAlign: "center",
-                          minWidth: 120,
-                          width: 120,
-                        }}
-                      >
-                        {order.price || "$0.00"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          // 💻 Desktop: Table
+          renderDesktopTable()
         )}
       </Box>
 
-      {/* Pagination Controls */}
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", mt: 2 }}>
-        <Select
-          value={rowsPerPage}
-          onChange={handleRowsPerPageChange}
-          size="small"
-          sx={{ minWidth: 70 }}
-        >
-          <MenuItem value={25}>25/page</MenuItem>
-          <MenuItem value={50}>50/page</MenuItem>
-          <MenuItem value={75}>75/page</MenuItem>
-        </Select>
-
+      {/* 🔽 Pagination */}
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 2,
+          mt: 3,
+          p: 1,
+        }}
+      >
+        <FormControl size="small">
+          <Select
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}
+            sx={{ minWidth: 100 }}
+          >
+            <MenuItem value={25}>25/page</MenuItem>
+            <MenuItem value={50}>50/page</MenuItem>
+            <MenuItem value={75}>75/page</MenuItem>
+          </Select>
+        </FormControl>
         <Pagination
           count={totalPages}
           page={page}
           onChange={handlePageChange}
           color="primary"
-          size="small"
+          size={isMobile ? "small" : "medium"}
+          showFirstButton
+          showLastButton
         />
       </Box>
 
-      {/* Sorting Menu */}
+      {/* 🔽 Sorting Menu */}
       <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleCloseMenu}>
-        {currentColumn === "customer_name" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("customer_name", "asc")}>
-              Sort A-Z
-            </MenuItem>
-            <MenuItem onClick={() => handleSelectSort("customer_name", "desc")}>
-              Sort Z-A
-            </MenuItem>
-          </>
-        )}
-
-        {currentColumn === "price" && ( // Changed from "order_total" to "price"
-          <>
-            <MenuItem onClick={() => handleSelectSort("price", "asc")}>
-              Sort Low to High
-            </MenuItem>
-            <MenuItem onClick={() => handleSelectSort("price", "desc")}>
-              Sort High to Low
-            </MenuItem>
-          </>
-        )}
-
         {currentColumn === "quantity" && (
           <>
             <MenuItem onClick={() => handleSelectSort("quantity", "asc")}>
@@ -562,14 +528,13 @@ const InventoryList = ({ fetchOrdersFromParent }) => {
             </MenuItem>
           </>
         )}
-
-        {currentColumn === "order_date" && (
+        {currentColumn === "price" && (
           <>
-            <MenuItem onClick={() => handleSelectSort("order_date", "asc")}>
-              Oldest
+            <MenuItem onClick={() => handleSelectSort("price", "asc")}>
+              Sort Low to High
             </MenuItem>
-            <MenuItem onClick={() => handleSelectSort("order_date", "desc")}>
-              Latest
+            <MenuItem onClick={() => handleSelectSort("price", "desc")}>
+              Sort High to Low
             </MenuItem>
           </>
         )}

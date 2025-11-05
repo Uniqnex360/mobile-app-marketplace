@@ -28,23 +28,34 @@ import {
   Stack,
   Divider,
   Chip,
+  useMediaQuery,
+  useTheme,
+  Collapse,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  Avatar,
 } from "@mui/material";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
-import { FilterList, Refresh, Visibility } from "@mui/icons-material";
+import { FilterList, Refresh, Visibility, ExpandMore, ExpandLess } from "@mui/icons-material";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import axios from "axios";
 import DottedCircleLoading from "../../Loading/DotLoading";
 import AddIcon from "@mui/icons-material/Add";
 import MannualOrder from "./MannualOrder";
-import FilterOrders from "./FilterOrders";
-import MarketplaceOption from "../Products/MarketplaceOption";
 import ChannelOrder from "./ChannelOrder";
 import { MoreVert as MoreVertIcon } from "@mui/icons-material";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import BrandSelector from "../../../utils/BrandSelector";
+
 const OrderList = ({ fetchOrdersFromParent }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isTablet = useMediaQuery(theme.breakpoints.down("md"));
+
   const location = useLocation();
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -63,22 +74,23 @@ const OrderList = ({ fetchOrdersFromParent }) => {
   const [totalPages, setTotalPages] = useState(1);
   const [orderCount, setOrderCount] = useState(0);
   const [selectedStatus, setSelectedStatus] = useState("all");
-
   const [customStatus, setCustomStatus] = useState([]);
   const [downloadModalOpen, setDownloadModalOpen] = useState(false);
-  const [downloadStartDate, setDownloadStartDate] = useState("");
-  const [downloadEndDate, setDownloadEndDate] = useState("");
+  const [downloadStartDate, setDownloadStartDate] = useState(null);
+  const [downloadEndDate, setDownloadEndDate] = useState(null);
   const [downloadFormat, setDownloadFormat] = useState("csv");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [logoMarket, setLogoMarket] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [showFilter, setShowFilter] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState({
     id: "all",
     name: "All Channels",
   });
+  const [expandedOrder, setExpandedOrder] = useState(null); // For mobile card expand
+
   const systemTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
   const handleClearFilter = () => {
     setSelectedBrand([]);
     toast.success("Brands reset successfully!", {
@@ -88,6 +100,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       closeOnClick: true,
     });
   };
+
   useEffect(() => {
     const storedCategory = localStorage.getItem("selectedCategory");
     if (storedCategory) {
@@ -95,36 +108,41 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       setSelectedCategory(parsedCategory);
     }
   }, []);
+
   const userData = localStorage.getItem("user");
   let userIds = "";
   if (userData) {
     const data = JSON.parse(userData);
     userIds = data.id;
   }
+
   const queryParams = new URLSearchParams(window.location.search);
   const initialPage = parseInt(queryParams.get("page")) || 1;
   const initialRowsPerPage = parseInt(queryParams.get("rowsPerPage"), 10) || 25;
   const [page, setPage] = useState(initialPage);
-  const [market, setMarket] = useState(null);
-  const [open, setOpen] = useState(false);
-  const handleOpen = () => setOpen(true);
+
   const handlePageChange = (event, newPage) => {
     setPage(newPage);
     navigate(`/Home/orders?page=${newPage}&rowsPerPage=${rowsPerPage}`);
   };
+
   const handleRowsPerPageChange = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
-    navigate(`/Home/orders?page=${page}&rowsPerPage=${event.target.value}`);
+    const value = parseInt(event.target.value, 10);
+    setRowsPerPage(value);
+    navigate(`/Home/orders?page=${page}&rowsPerPage=${value}`);
     setPage(1);
   };
+
   useEffect(() => {
     setRowsPerPage(initialRowsPerPage);
   }, [location.search]);
+
   useEffect(() => {
-    if (location.state && location.state.searchQuery) {
-      setSearchTerm(location.state.searchQuery);
+    if (location.state?.searchQuery) {
+      setSearchQuery(location.state.searchQuery);
     }
   }, [location.state]);
+
   useEffect(() => {
     const fetchBrands = async () => {
       setIsLoading(true);
@@ -152,6 +170,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
     };
     fetchBrands();
   }, [inputValueBrand, brandLimit, userIds]);
+
   const fetchOrderData = async (marketId = "all", page, rowsPerPage) => {
     setLoading(true);
     const validRowsPerPage = rowsPerPage && rowsPerPage > 0 ? rowsPerPage : 25;
@@ -160,7 +179,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       const marketplaceId = localStorage.getItem("selectedCategory")
         ? JSON.parse(localStorage.getItem("selectedCategory")).id
         : "all";
-        
+
       const payload = {
         user_id: userIds,
         skip: skip >= 0 ? skip : 0,
@@ -171,14 +190,16 @@ const OrderList = ({ fetchOrdersFromParent }) => {
         sort_by_value: sortConfig.direction === "asc" ? 1 : -1,
         timezone: "US/Pacific",
       };
+
       if (selectedStatus && selectedStatus !== "all") {
         payload.order_status = selectedStatus;
       }
+
       const response = await axios.post(
         `${process.env.REACT_APP_IP}fetchAllorders/`,
         payload
       );
-      
+
       const responseData = response.data || {};
       setOrders(Array.isArray(responseData.orders) ? responseData.orders : []);
       setLogoMarket(
@@ -204,6 +225,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       setLoading(false);
     }
   };
+
   const prevParams = useRef({
     selectedCategoryId: selectedCategory.id,
     page,
@@ -212,15 +234,16 @@ const OrderList = ({ fetchOrdersFromParent }) => {
     searchQuery,
     selectedStatus,
   });
+
   useEffect(() => {
     const shouldFetch =
       selectedCategory.id !== prevParams.current.selectedCategoryId ||
       page !== prevParams.current.page ||
       rowsPerPage !== prevParams.current.rowsPerPage ||
-      JSON.stringify(sortConfig) !==
-        JSON.stringify(prevParams.current.sortConfig) ||
-      searchQuery !== prevParams.current.searchQuery||
-    selectedStatus !== prevParams.current.selectedStatus;
+      JSON.stringify(sortConfig) !== JSON.stringify(prevParams.current.sortConfig) ||
+      searchQuery !== prevParams.current.searchQuery ||
+      selectedStatus !== prevParams.current.selectedStatus;
+
     if (shouldFetch) {
       fetchOrderData(selectedCategory.id, page, rowsPerPage);
       prevParams.current = {
@@ -240,6 +263,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
     searchQuery,
     selectedStatus,
   ]);
+
   useEffect(() => {
     const storedCategory = localStorage.getItem("selectedCategory");
     if (storedCategory) {
@@ -248,46 +272,38 @@ const OrderList = ({ fetchOrdersFromParent }) => {
     }
     fetchOrderData(selectedCategory.id, page, rowsPerPage);
   }, []);
+
+  const [open, setOpen] = useState(false);
+  const handleOpen = () => setOpen(true);
   const handleClose = () => {
     setOpen(false);
     fetchOrderData(selectedCategory.id, page, rowsPerPage);
   };
-  const filteredOrders = orders.filter((order) => {
-    const purchaseOrderId = order.purchaseOrderId
-      ? order.purchaseOrderId.toLowerCase()
-      : "";
-    const customerOrderId = order.customerOrderId
-      ? order.customerOrderId.toLowerCase()
-      : "";
-    return (
-      purchaseOrderId.includes(searchQuery.toLowerCase()) ||
-      customerOrderId.includes(searchQuery.toLowerCase())
-    );
-  });
+
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
   };
-  const handleChangePage = (event, newPage) => {
-    navigate(`/Home/orders?page=${newPage}&rowsPerPage=${rowsPerPage}`);
-    setPage(newPage);
-  };
+
   const handleOpenMenu = (event, column) => {
     setAnchorEl(event.currentTarget);
     setCurrentColumn(column);
   };
+
   const handleSelectSort = (key, direction) => {
     setSortConfig({ key, direction });
     setAnchorEl(null);
   };
-  const handleCloseMenu = () => {
-    setAnchorEl(null);
-  };
+
+  const handleCloseMenu = () => setAnchorEl(null);
+
   const handleProduct = (category) => {
     setSelectedCategory(category);
   };
+
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
   };
+
   const handleResetChange = () => {
     setSearchQuery("");
     setSortConfig({ key: "", direction: "asc" });
@@ -303,10 +319,9 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       autoClose: 2000,
       hideProgressBar: false,
       closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true,
     });
   };
+
   const handleDownload = async () => {
     try {
       if (
@@ -324,7 +339,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
         toast.error("End date must be after start date");
         return;
       }
-      const brandIds = selectedBrand.map((b) => b.id);
+
       const requestData = {};
       if (selectedBrand.length > 0) {
         requestData.brands = selectedBrand.map((b) => b.id);
@@ -342,6 +357,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       }
       requestData.format = downloadFormat;
       requestData.user_id = userIds;
+
       setIsLoading(true);
       const response = await axios.post(
         `${process.env.REACT_APP_IP}downloadOrders/`,
@@ -353,6 +369,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
           },
         }
       );
+
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
@@ -364,6 +381,7 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       link.click();
       link.remove();
       window.URL.revokeObjectURL(url);
+
       setDownloadModalOpen(false);
       setSelectedBrand([]);
       setDownloadStartDate(null);
@@ -377,659 +395,434 @@ const OrderList = ({ fetchOrdersFromParent }) => {
       setIsLoading(false);
     }
   };
+
+  // 🔽 Mobile: Render order as expandable card
+  const renderMobileOrderCard = (order, index) => {
+    const marketplace = logoMarket.find(
+      (m) => m.name === order.marketplace_name
+    );
+
+    return (
+      <Card key={order.id} sx={{ mb: 2, boxShadow: 2 }}>
+        <CardContent
+          sx={{
+            p: 2,
+            "&:last-child": { pb: 2 },
+            cursor: "pointer",
+          }}
+          onClick={() => setExpandedOrder(expandedOrder === index ? null : index)}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+              {order.purchase_order_id || "N/A"}
+            </Typography>
+            <IconButton size="small">
+              {expandedOrder === index ? <ExpandLess /> : <ExpandMore />}
+            </IconButton>
+          </Box>
+
+          <Typography variant="body2" color="text.secondary">
+            <strong>Channel:</strong>{" "}
+            {marketplace?.image_url ? (
+              <Avatar
+                src={marketplace.image_url}
+                alt={marketplace.name}
+                sx={{ width: 16, height: 16, mr: 0.5, display: "inline-flex", verticalAlign: "middle" }}
+              />
+            ) : null}
+            {order.marketplace_name || "N/A"}
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary">
+            <strong>Status:</strong> {order.order_status || "N/A"}
+          </Typography>
+
+          <Collapse in={expandedOrder === index}>
+            <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #eee" }}>
+              <Grid container spacing={1}>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Order Date
+                  </Typography>
+                  <Typography variant="body2">
+                    {order.order_date
+                      ? new Date(order.order_date).toLocaleString(undefined, {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                          timeZone: "US/Pacific",
+                        })
+                      : "N/A"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Currency
+                  </Typography>
+                  <Typography variant="body2">{order.currency || "N/A"}</Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Quantity
+                  </Typography>
+                  <Typography variant="body2">
+                    {order.items_order_quantity || "N/A"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={6}>
+                  <Typography variant="caption" color="text.secondary">
+                    Order Value
+                  </Typography>
+                  <Typography variant="body2">
+                    $
+                    {order.order_total && !isNaN(order.order_total)
+                      ? order.order_total.toFixed(2)
+                      : "N/A"}
+                  </Typography>
+                </Grid>
+                <Grid item xs={12} sx={{ mt: 1 }}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="primary"
+                    startIcon={<Visibility />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(
+                        `/Home/orders/details/${order.id}?page=${page}&rowsPerPage=${rowsPerPage}`
+                      );
+                    }}
+                    sx={{ textTransform: "none" }}
+                  >
+                    View Details
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          </Collapse>
+        </CardContent>
+      </Card>
+    );
+  };
+
+  // 🔽 Desktop: Render table
+  const renderDesktopTable = () => (
+    <TableContainer
+      component={Paper}
+      sx={{
+        maxHeight: "70vh",
+        overflow: "auto",
+        "&::-webkit-scrollbar": {
+          width: "4px",
+          height: "4px",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: "#888",
+          borderRadius: "10px",
+        },
+      }}
+    >
+      <Table stickyHeader sx={{ minWidth: isTablet ? "100%" : "650px" }}>
+        <TableHead>
+          <TableRow>
+            <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Purchase Order ID</TableCell>
+            <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Channel Name</TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", textAlign: "center", cursor: "pointer" }}
+              onClick={(e) => handleOpenMenu(e, "order_date")}
+            >
+              Order Date <MoreVertIcon sx={{ fontSize: 14 }} />
+            </TableCell>
+            <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Currency</TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", textAlign: "center", cursor: "pointer" }}
+              onClick={(e) => handleOpenMenu(e, "items_order_quantity")}
+            >
+              Quantity <MoreVertIcon sx={{ fontSize: 14 }} />
+            </TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", textAlign: "center", cursor: "pointer" }}
+              onClick={(e) => handleOpenMenu(e, "order_total")}
+            >
+              Order Value <MoreVertIcon sx={{ fontSize: 14 }} />
+            </TableCell>
+            <TableCell
+              sx={{ fontWeight: "bold", textAlign: "center", cursor: "pointer" }}
+              onClick={(e) => handleOpenMenu(e, "order_status")}
+            >
+              Status <MoreVertIcon sx={{ fontSize: 14 }} />
+            </TableCell>
+            <TableCell sx={{ fontWeight: "bold", textAlign: "center" }}>Actions</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {loading ? (
+            <TableRow>
+              <TableCell colSpan={8} align="center">
+                <DottedCircleLoading />
+              </TableCell>
+            </TableRow>
+          ) : orders.length === 0 ? (
+            <TableRow>
+              <TableCell colSpan={8} align="center" sx={{ color: "red", fontWeight: "bold" }}>
+                No Orders To Show
+              </TableCell>
+            </TableRow>
+          ) : (
+            orders.map((order) => {
+              const marketplace = logoMarket.find(
+                (m) => m.name === order.marketplace_name
+              );
+              return (
+                <TableRow
+                  key={order.id}
+                  hover
+                  sx={{ cursor: "pointer" }}
+                  onClick={() =>
+                    navigate(
+                      `/Home/orders/details/${order.id}?page=${page}&rowsPerPage=${rowsPerPage}`
+                    )
+                  }
+                >
+                  <TableCell sx={{ textAlign: "center" }}>{order.purchase_order_id}</TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>
+                    {marketplace && marketplace.image_url ? (
+                      <Avatar
+                        src={marketplace.image_url}
+                        alt={marketplace.name}
+                        sx={{ width: 20, height: 20, mr: 1, display: "inline-flex", verticalAlign: "middle" }}
+                      />
+                    ) : null}
+                    {order.marketplace_name}
+                  </TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>
+                    {order.order_date
+                      ? new Date(order.order_date).toLocaleString(undefined, {
+                          day: "2-digit",
+                          month: "2-digit",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                          timeZone: "US/Pacific",
+                        })
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>{order.currency}</TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>
+                    {order.items_order_quantity || "N/A"}
+                  </TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>
+                    $
+                    {order.order_total && !isNaN(order.order_total)
+                      ? order.order_total.toFixed(2)
+                      : "N/A"}
+                  </TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>{order.order_status || "N/A"}</TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>
+                    <Tooltip title="View Order Details" arrow>
+                      <Button
+                        variant="text"
+                        sx={{ color: "#000080", minWidth: 0, p: 0.5 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(
+                            `/Home/orders/details/${order.id}?page=${page}&rowsPerPage=${rowsPerPage}`
+                          );
+                        }}
+                      >
+                        <Visibility sx={{ fontSize: 20 }} />
+                      </Button>
+                    </Tooltip>
+                  </TableCell>
+                </TableRow>
+              );
+            })
+          )}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+
   return (
-    <Box sx={{ flex: 1, width: "100%" }}>
+    <Box sx={{ flex: 1, width: "100%", p: { xs: 1, sm: 2 } }}>
+      {/* 🔝 Top Controls - Responsive Stack */}
       <Box
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          my: 2,
-          justifyContent: "flex-end",
-          alignItems: "center",
-          position: "fixed",
+          position: "sticky",
           top: 0,
-          right: 0,
-          marginTop: "20px",
-          width: "108%",
-          backgroundColor: "white",
           zIndex: 100,
+          bgcolor: "white",
+          pt: 2,
+          pb: 1,
+          mb: 2,
+          borderBottom: "1px solid #eee",
         }}
       >
-        <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            my: 2,
-            marginRight: "4%",
-            justifyContent: "flex-end",
-            alignItems: "center",
-            marginTop: "6%",
-            width: "100%",
-          }}
-        >
-          <Box sx={{ marginTop: "-7px" }}>
+        <Grid container spacing={2} alignItems="center" justifyContent="flex-end">
+          <Grid item xs={12} sm={4} md={3}>
             <ChannelOrder
               handleProduct={handleProduct}
               clearChannel={selectedCategory}
+              sx={{ width: "100%" }}
             />
-          </Box>
-          <FormControl size="small" sx={{ widhth: 150 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={selectedStatus}
-              label="status"
-              onChange={(e) => setSelectedStatus(e.target.value)}
-            >
-              <MenuItem value="all">All Statuses</MenuItem>
-              <MenuItem value="Pending">Pending</MenuItem>
-              <MenuItem value="Shipped">Shipped</MenuItem>
-              <MenuItem value="Canceled">Canceled</MenuItem>
-            </Select>
-          </FormControl>
+          </Grid>
 
-          <TextField
-            size="small"
-            placeholder="Search Purchase Order ID"
-            value={searchQuery}
-            onChange={handleSearchChange}
-            sx={{
-              width: 300,
-              "& input": {
-                fontSize: "14px",
-              },
-            }}
-          />
-          {selectedCategory.id == "custom" && (
-            <Button
-              variant="text"
-              color="primary"
-              sx={{
-                backgroundColor: "#000080",
-                fontSize: "14px",
-                color: "white",
-                fontWeight: 400,
-                minWidth: "auto",
-                padding: "8px 17px",
-                textTransform: "capitalize",
-                height: "35px",
-                "&:hover": {
-                  backgroundColor: "darkblue",
-                },
-              }}
-              onClick={handleOpen}
-            >
-              <AddIcon sx={{ marginRight: "3px" }} />
-              Create Order
-            </Button>
+          <Grid item xs={12} sm={4} md={3}>
+            <FormControl size="small" fullWidth>
+              <InputLabel>Status</InputLabel>
+              <Select
+                value={selectedStatus}
+                label="Status"
+                onChange={(e) => setSelectedStatus(e.target.value)}
+              >
+                <MenuItem value="all">All Statuses</MenuItem>
+                <MenuItem value="Pending">Pending</MenuItem>
+                <MenuItem value="Shipped">Shipped</MenuItem>
+                <MenuItem value="Canceled">Canceled</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+
+          <Grid item xs={12} sm={4} md={3}>
+            <TextField
+              size="small"
+              placeholder="Search Purchase Order ID"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              fullWidth
+              sx={{ "& input": { fontSize: "14px" } }}
+            />
+          </Grid>
+
+          {selectedCategory.id === "custom" && (
+            <Grid item xs={12} sm="auto">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleOpen}
+                startIcon={<AddIcon />}
+                fullWidth
+                sx={{
+                  bgcolor: "#000080",
+                  color: "white",
+                  textTransform: "none",
+                  height: 40,
+                  "&:hover": { bgcolor: "darkblue" },
+                }}
+              >
+                Create Order
+              </Button>
+            </Grid>
           )}
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => setDownloadModalOpen(true)}
-            sx={{
-              marginLeft: "10px",
-              backgroundColor: "#000080",
-              "&:hover": {
-                backgroundColor: "darkblue",
-              },
-            }}
-          >
-            Download orders
-          </Button>
-          <Tooltip title="Reset" arrow>
+
+          <Grid item xs={12} sm="auto">
             <Button
-              variant="outlined"
+              variant="contained"
+              color="primary"
+              onClick={() => setDownloadModalOpen(true)}
+              fullWidth
               sx={{
-                backgroundColor: "#000080",
-                minWidth: "auto",
-                padding: "6px",
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                "&:hover": {
-                  backgroundColor: "darkblue",
-                },
+                bgcolor: "#000080",
+                "&:hover": { bgcolor: "darkblue" },
+                textTransform: "none",
               }}
-              onClick={handleResetChange}
             >
-              <Refresh sx={{ color: "white", fontSize: "20px" }} />
+              Download Orders
             </Button>
-          </Tooltip>
-          <Typography variant="body2">
-            Total Orders: {orderCount ? orderCount : "0"}
-          </Typography>
-        </Box>
+          </Grid>
+
+          <Grid item xs={12} sm="auto">
+            <Tooltip title="Reset" arrow>
+              <Button
+                variant="outlined"
+                onClick={handleResetChange}
+                fullWidth
+                sx={{
+                  minWidth: "auto",
+                  bgcolor: "#000080",
+                  color: "white",
+                  border: "none",
+                  p: 1,
+                  "&:hover": { bgcolor: "darkblue" },
+                }}
+              >
+                <Refresh />
+              </Button>
+            </Tooltip>
+          </Grid>
+
+          <Grid item xs={12} sm="auto">
+            <Typography variant="body2" sx={{ fontWeight: "bold", textAlign: "center" }}>
+              Total Orders: {orderCount || "0"}
+            </Typography>
+          </Grid>
+        </Grid>
       </Box>
-      <Button
-        variant="contained"
-        color="primary"
-        onClick={() => setDownloadModalOpen(true)}
-        sx={{ margin: "16px 0" }}
-      >
-        Download orders
-      </Button>
-      <Box sx={{ paddingTop: "150px" }}>
+
+      {/* 📊 Orders List */}
+      <Box sx={{ mt: 2 }}>
         {customStatus === "custom" ? (
-          <TableContainer
-            component={Paper}
-            sx={{
-              maxHeight: "70vh",
-              display: "flex",
-              justifyContent: "center",
-              overflowY: "overlay",
-              overflowX: "overlay",
-              "&::-webkit-scrollbar": {
-                height: "2px",
-                width: "2px",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: "#888",
-                borderRadius: "10px",
-              },
-              "&::-webkit-scrollbar-thumb:hover": {
-                backgroundColor: "#555",
-              },
-              "&::-webkit-scrollbar-track": {
-                backgroundColor: "#f1f1f1",
-                borderRadius: "10px",
-              },
-            }}
-          >
-            <Table sx={{ minWidth: 650, margin: "0 auto" }}>
-              <TableHead
-                sx={{
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 1,
-                  backgroundColor: "#f6f6f6",
-                }}
-              >
-                <TableRow>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Purchase Order Id
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Customer Name
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Order Date
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Currency
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ fontWeight: "bold", backgroundColor: "#f6f6f6" }}
-                  >
-                    Quantity
-                    <IconButton
-                      onClick={(e) => handleOpenMenu(e, "total_quantity")}
-                    >
-                      <MoreVertIcon
-                        sx={{ fontSize: "14px", paddingRight: "3px" }}
-                      />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell
-                    align="center"
-                    sx={{ fontWeight: "bold", backgroundColor: "#f6f6f6" }}
-                  >
-                    Order Value
-                    <IconButton
-                      onClick={(e) => handleOpenMenu(e, "total_price")}
-                    >
-                      <MoreVertIcon sx={{ fontSize: "14px" }} />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Status
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Actions
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <DottedCircleLoading />
-                    </TableCell>
-                  </TableRow>
-                ) : manualOrders && manualOrders.length > 0 ? (
-                  manualOrders.map((order, index) => (
-                    <TableRow
-                      key={index}
-                      hover
-                      onClick={() =>
-                        navigate(
-                          `/Home/orders/customList/${order.id}?page=${page}`
-                        )
-                      }
-                      style={{ cursor: "pointer" }}
-                    >
-                      <TableCell
-                        sx={{
-                          textAlign: "center",
-                          minWidth: 140,
-                          width: 140,
-                          wordBreak: "break-word",
-                          whiteSpace: "normal",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {order.order_id ? order.order_id : "N/A"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          textAlign: "center",
-                          minWidth: 120,
-                          width: 120,
-                          wordBreak: "break-word",
-                          whiteSpace: "normal",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {order.customer_name ? order.customer_name : "N/A"}
-                      </TableCell>
-                      <TableCell
-                        sx={{ textAlign: "center", minWidth: 120, width: 120 }}
-                      >
-                        {order.purchase_order_date
-                          ? new Date(order.purchase_order_date).toLocaleString(
-                              undefined,
-                              {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                hour12: true,
-                                timeZone: systemTimeZone,
-                              }
-                            )
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell align="center">
-                        {order.currency ? order.currency : "USD"}
-                      </TableCell>
-                      <TableCell
-                        align="center"
-                        sx={{ paddingLeft: "3px", minWidth: 130, width: 130 }}
-                      >
-                        {order.total_quantity ? order.total_quantity : "N/A"}
-                      </TableCell>
-                      <TableCell align="center" sx={{ paddingLeft: "3px" }}>
-                        {order.total_price && !isNaN(order.total_price)
-                          ? `$${order.total_price.toFixed(2)}`
-                          : "N/A"}
-                      </TableCell>
-                      <TableCell
-                        sx={{
-                          textAlign: "center",
-                          minWidth: 120,
-                          width: 120,
-                          wordBreak: "break-word",
-                          whiteSpace: "normal",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                        }}
-                      >
-                        {order.order_status ? order.order_status : "N/A"}
-                      </TableCell>
-                      <TableCell sx={{ textAlign: "center" }}>
-                        <Tooltip title="View Order Details" arrow>
-                          <Button
-                            variant="text"
-                            sx={{ color: "#000080" }}
-                            onClick={() => handleOpen}
-                          >
-                            <Visibility sx={{ fontSize: 20 }} />
-                          </Button>
-                        </Tooltip>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : !loading && (!manualOrders || manualOrders.length === 0) ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      align="center"
-                      sx={{ fontWeight: "bold", color: "red" }}
-                    >
-                      No Custom Orders Found
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : null}
-        {customStatus !== "custom" ? (
-          <TableContainer
-            component={Paper}
-            sx={{
-              maxHeight: "70vh",
-              overflowY: "overlay",
-              overflowX: "overlay",
-              "&::-webkit-scrollbar": {
-                height: "2px",
-                width: "2px",
-              },
-              "&::-webkit-scrollbar-thumb": {
-                backgroundColor: "#888",
-                borderRadius: "10px",
-              },
-              "&::-webkit-scrollbar-thumb:hover": {
-                backgroundColor: "#555",
-              },
-              "&::-webkit-scrollbar-track": {
-                backgroundColor: "#f1f1f1",
-                borderRadius: "10px",
-              },
-            }}
-          >
-            <Table sx={{ minWidth: 650 }}>
-              <TableHead
-                sx={{
-                  position: "sticky",
-                  top: 0,
-                  zIndex: 1,
-                  backgroundColor: "#f6f6f6",
-                }}
-              >
-                <TableRow>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Purchase Order ID
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Channel Name
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Order Date
-                    <IconButton
-                      onClick={(e) => handleOpenMenu(e, "order_date")}
-                    >
-                      <MoreVertIcon sx={{ fontSize: "14px" }} />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Currency
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Quantity
-                    <IconButton
-                      onClick={(e) => handleOpenMenu(e, "items_order_quantity")}
-                    >
-                      <MoreVertIcon sx={{ fontSize: "14px" }} />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Order Value
-                    <IconButton
-                      onClick={(e) => handleOpenMenu(e, "order_total")}
-                    >
-                      <MoreVertIcon sx={{ fontSize: "14px" }} />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Status
-                    <IconButton
-                      onClick={(e) => handleOpenMenu(e, "order_status")}
-                    >
-                      <MoreVertIcon sx={{ fontSize: "14px" }} />
-                    </IconButton>
-                  </TableCell>
-                  <TableCell
-                    sx={{
-                      fontWeight: "bold",
-                      textAlign: "center",
-                      backgroundColor: "#f6f6f6",
-                    }}
-                  >
-                    Actions
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <DottedCircleLoading />
-                    </TableCell>
-                  </TableRow>
-                ) : orders.length === 0 ? (
-                  <TableRow>
-                    <TableCell
-                      colSpan={8}
-                      align="center"
-                      sx={{ fontWeight: "bold", color: "red" }}
-                    >
-                      No Orders To Show
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  orders.map((order) => {
-                    const marketplace = logoMarket.find(
-                      (market) => market.name === order.marketplace_name
-                    );
-                    return (
-                      <TableRow
-                        key={order.id}
-                        hover
-                        onClick={() =>
-                          navigate(
-                            `/Home/orders/details/${order.id}?page=${page}&rowsPerPage=${rowsPerPage}`
-                          )
-                        }
-                        state={{ searchQuery: searchTerm }}
-                        style={{ cursor: "pointer" }}
-                      >
-                        <TableCell sx={{ textAlign: "center" }}>
-                          {order.purchase_order_id}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center" }}>
-                          {marketplace && (
-                            <div
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                              }}
-                            >
-                              {marketplace.image_url ? (
-                                <img
-                                  src={marketplace.image_url}
-                                  alt={marketplace.name}
-                                  style={{
-                                    width: 20,
-                                    height: 20,
-                                    marginRight: 8,
-                                  }}
-                                />
-                              ) : (
-                                <div
-                                  style={{
-                                    width: 20,
-                                    height: 20,
-                                    marginRight: 8,
-                                    backgroundColor: "#ccc",
-                                  }}
-                                />
-                              )}
-                              {marketplace.marketplace_name}
-                            </div>
-                          )}
-                          {order.marketplace_name}
-                        </TableCell>
-                        <TableCell
-                          sx={{ textAlign: "center", paddingLeft: "3px" }}
-                        >
-                          {order.order_date
-                            ? new Date(order.order_date).toLocaleString(
-                                undefined,
-                                {
-                                  day: "2-digit",
-                                  month: "2-digit",
-                                  year: "numeric",
-                                  hour: "2-digit",
-                                  minute: "2-digit",
-                                  hour12: true,
-                                  timeZone: "US/Pacific",
-                                }
-                              )
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center" }}>
-                          {order.currency}
-                        </TableCell>
-                        <TableCell
-                          sx={{ textAlign: "center", paddingLeft: "3px" }}
-                        >
-                          {order.items_order_quantity
-                            ? order.items_order_quantity
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell
-                          sx={{ textAlign: "center", paddingLeft: "3px" }}
-                        >
-                          $
-                          {order.order_total && !isNaN(order.order_total)
-                            ? order.order_total.toFixed(2)
-                            : "N/A"}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center" }}>
-                          {order.order_status || "N/A"}
-                        </TableCell>
-                        <TableCell sx={{ textAlign: "center" }}>
-                          <Tooltip title="View Order Details" arrow>
-                            <Button variant="text" sx={{ color: "#000080" }}>
-                              <Visibility sx={{ fontSize: 20 }} />
-                            </Button>
-                          </Tooltip>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        ) : null}
+          <Typography variant="h6" align="center" color="text.secondary">
+            Custom Orders Not Implemented Yet
+          </Typography>
+        ) : isMobile ? (
+          // 📱 Mobile: Cards
+          loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+              <DottedCircleLoading />
+            </Box>
+          ) : orders.length === 0 ? (
+            <Typography variant="h6" align="center" color="text.secondary" sx={{ mt: 4 }}>
+              No Orders Found
+            </Typography>
+          ) : (
+            orders.map((order, index) => renderMobileOrderCard(order, index))
+          )
+        ) : (
+          // 💻 Desktop: Table
+          renderDesktopTable()
+        )}
       </Box>
+
+      {/* 🔽 Pagination */}
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
           alignItems: "center",
           justifyContent: "flex-end",
-          mt: 2,
+          gap: 2,
+          mt: 3,
+          p: 1,
         }}
       >
-        <Select
-          value={rowsPerPage}
-          onChange={handleRowsPerPageChange}
-          size="small"
-          sx={{ minWidth: 70 }}
-        >
-          <MenuItem value={25}>25/page</MenuItem>
-          <MenuItem value={50}>50/page</MenuItem>
-          <MenuItem value={75}>75/page</MenuItem>
-        </Select>
+        <FormControl size="small">
+          <Select
+            value={rowsPerPage}
+            onChange={handleRowsPerPageChange}
+            sx={{ minWidth: 100 }}
+          >
+            <MenuItem value={25}>25/page</MenuItem>
+            <MenuItem value={50}>50/page</MenuItem>
+            <MenuItem value={75}>75/page</MenuItem>
+          </Select>
+        </FormControl>
         <Pagination
           count={totalPages}
           page={page}
           onChange={handlePageChange}
-          rowsPerPage={rowsPerPage}
-          onPageChange={handleChangePage}
           color="primary"
-          size="small"
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(1);
-          }}
+          size={isMobile ? "small" : "medium"}
+          showFirstButton
+          showLastButton
         />
       </Box>
+
+      {/* 📝 Manual Order Modal */}
       <Modal open={open} onClose={handleClose}>
         <Slide direction="left" in={open} mountOnEnter unmountOnExit>
           <Box
@@ -1037,63 +830,34 @@ const OrderList = ({ fetchOrdersFromParent }) => {
               position: "absolute",
               top: 0,
               right: 0,
-              width: 900,
+              width: { xs: "100vw", sm: 900 },
               height: "100vh",
               bgcolor: "background.paper",
               boxShadow: 24,
-              p: 3,
+              p: 2,
+              overflow: "auto",
             }}
           >
             <MannualOrder handleClose={handleClose} />
           </Box>
         </Slide>
       </Modal>
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
-      >
-        {currentColumn === "customer_name" && (
+
+      {/* 🔽 Sort Menu */}
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleCloseMenu}>
+        {currentColumn === "order_date" && (
           <>
-            <MenuItem onClick={() => handleSelectSort("customer_name", "asc")}>
-              Sort A-Z
-            </MenuItem>
-            <MenuItem onClick={() => handleSelectSort("customer_name", "desc")}>
-              Sort Z-A
-            </MenuItem>
-          </>
-        )}
-        {currentColumn === "total_price" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("total_price", "asc")}>
-              Sort Low to High
-            </MenuItem>
-            <MenuItem onClick={() => handleSelectSort("total_price", "desc")}>
-              Sort High to Low
-            </MenuItem>
+            <MenuItem onClick={() => handleSelectSort("order_date", "asc")}>Oldest</MenuItem>
+            <MenuItem onClick={() => handleSelectSort("order_date", "desc")}>Latest</MenuItem>
           </>
         )}
         {currentColumn === "items_order_quantity" && (
           <>
-            <MenuItem
-              onClick={() => handleSelectSort("items_order_quantity", "asc")}
-            >
+            <MenuItem onClick={() => handleSelectSort("items_order_quantity", "asc")}>
               Sort Low to High
             </MenuItem>
-            <MenuItem
-              onClick={() => handleSelectSort("items_order_quantity", "desc")}
-            >
+            <MenuItem onClick={() => handleSelectSort("items_order_quantity", "desc")}>
               Sort High to Low
-            </MenuItem>
-          </>
-        )}
-        {currentColumn === "order_date" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("order_date", "asc")}>
-              Oldest
-            </MenuItem>
-            <MenuItem onClick={() => handleSelectSort("order_date", "desc")}>
-              Latest
             </MenuItem>
           </>
         )}
@@ -1109,41 +873,24 @@ const OrderList = ({ fetchOrdersFromParent }) => {
         )}
         {currentColumn === "order_status" && (
           <>
-            <MenuItem onClick={() => handleSelectSort("order_status", "asc")}>
-              Sort A-Z
-            </MenuItem>
-            <MenuItem onClick={() => handleSelectSort("order_status", "desc")}>
-              Sort Z-A
-            </MenuItem>
-          </>
-        )}
-        {currentColumn === "total_quantity" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("total_quantity", "asc")}>
-              Sort Low to High
-            </MenuItem>
-            <MenuItem
-              onClick={() => handleSelectSort("total_quantity", "desc")}
-            >
-              Sort High to Low
-            </MenuItem>
+            <MenuItem onClick={() => handleSelectSort("order_status", "asc")}>Sort A-Z</MenuItem>
+            <MenuItem onClick={() => handleSelectSort("order_status", "desc")}>Sort Z-A</MenuItem>
           </>
         )}
       </Menu>
-      <Modal
-        open={downloadModalOpen}
-        onClose={() => setDownloadModalOpen(false)}
-      >
+
+      {/* 📥 Download Modal */}
+      <Modal open={downloadModalOpen} onClose={() => setDownloadModalOpen(false)}>
         <Box
           sx={{
             position: "absolute",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            width: 400,
+            width: { xs: "90%", sm: 400 },
             bgcolor: "background.paper",
             boxShadow: 24,
-            p: 4,
+            p: 3,
             borderRadius: 2,
           }}
         >
@@ -1151,33 +898,15 @@ const OrderList = ({ fetchOrdersFromParent }) => {
             <Typography variant="h6" gutterBottom>
               Download Orders
             </Typography>
+
             {selectedBrand.length > 0 && (
-              <Box
-                sx={{
-                  p: 1.5,
-                  border: "1px solid",
-                  borderColor: "divider",
-                  borderRadius: 2,
-                  bgcolor: "action.hover",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 1,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+              <Box sx={{ p: 1.5, border: "1px solid #ddd", borderRadius: 2, bgcolor: "#f9f9f9" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1 }}>
+                  <Typography variant="body2" fontWeight="bold">
                     Selected Brands ({selectedBrand.length})
                   </Typography>
-                  <Button
-                    size="small"
-                    onClick={() => setSelectedBrand([])}
-                    sx={{ textTransform: "none" }}
-                  >
-                    Clear All
+                  <Button size="small" onClick={() => setSelectedBrand([])}>
+                    Clear
                   </Button>
                 </Box>
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
@@ -1186,16 +915,13 @@ const OrderList = ({ fetchOrdersFromParent }) => {
                       key={brand.id}
                       label={brand.name}
                       size="small"
-                      onDelete={() =>
-                        setSelectedBrand((prev) =>
-                          prev.filter((b) => b.id !== brand.id)
-                        )
-                      }
+                      onDelete={() => setSelectedBrand((prev) => prev.filter((b) => b.id !== brand.id))}
                     />
                   ))}
                 </Box>
               </Box>
             )}
+
             <BrandSelector
               selectedBrand={selectedBrand}
               setSelectedBrand={setSelectedBrand}
@@ -1207,51 +933,36 @@ const OrderList = ({ fetchOrdersFromParent }) => {
               isLoading={isLoading}
               hasMore={hasMore}
               toggleSelection={(option) => {
-                const isSelected = selectedBrand.some(
-                  (b) => b.id === option.id
+                const isSelected = selectedBrand.some((b) => b.id === option.id);
+                setSelectedBrand((prev) =>
+                  isSelected ? prev.filter((b) => b.id !== option.id) : [...prev, option]
                 );
-                if (isSelected) {
-                  setSelectedBrand(
-                    selectedBrand.filter((b) => b.id !== option.id)
-                  );
-                } else {
-                  setSelectedBrand([...selectedBrand, option]);
-                }
               }}
               label="Brands"
               width="100%"
             />
+
             <Divider>
               <Typography variant="overline">OR</Typography>
             </Divider>
+
             <LocalizationProvider dateAdapter={AdapterDateFns}>
               <DatePicker
                 label="Start Date"
                 value={downloadStartDate}
                 onChange={(newValue) => setDownloadStartDate(newValue)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    fullWidth
-                    InputLabelProps={{ required: false }}
-                  />
-                )}
-                maxDate={new Date(downloadEndDate)}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+                maxDate={downloadEndDate}
               />
               <DatePicker
                 label="End Date"
                 value={downloadEndDate}
                 onChange={(newValue) => setDownloadEndDate(newValue)}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    fullWidth
-                    InputLabelProps={{ required: false }}
-                  />
-                )}
-                minDate={new Date(downloadStartDate)}
+                renderInput={(params) => <TextField {...params} fullWidth />}
+                minDate={downloadStartDate}
               />
             </LocalizationProvider>
+
             <FormControl fullWidth>
               <InputLabel>Format</InputLabel>
               <Select
@@ -1264,14 +975,14 @@ const OrderList = ({ fetchOrdersFromParent }) => {
                 <MenuItem value="txt">Text</MenuItem>
               </Select>
             </FormControl>
+
             <Button
               variant="contained"
               color="primary"
               onClick={handleDownload}
               fullWidth
               disabled={
-                (selectedBrand.length === 0 &&
-                  (!downloadStartDate || !downloadEndDate)) ||
+                (selectedBrand.length === 0 && (!downloadStartDate || !downloadEndDate)) ||
                 isLoading
               }
               startIcon={isLoading ? <CircularProgress size={20} /> : null}
@@ -1285,4 +996,5 @@ const OrderList = ({ fetchOrdersFromParent }) => {
     </Box>
   );
 };
+
 export default OrderList;
