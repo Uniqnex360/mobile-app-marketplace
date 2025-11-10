@@ -1,4 +1,4 @@
-import { Autocomplete, TextField, Box } from "@mui/material";
+import { Autocomplete, TextField, Box, Paper } from "@mui/material";
 
 const BrandSelector = ({
     selectedBrand,
@@ -12,85 +12,87 @@ const BrandSelector = ({
     hasMore,
     toggleSelection,
     label = 'Brands',
-    width = 190
-}) => (
-    <Box sx={{
-        position: 'relative',
-        paddingRight: '7.25%',
-        width: `${width + 20}px`,
-    }}>
-        <Autocomplete
-            multiple
-            disableCloseOnSelect
-            options={[
-                ...selectedBrand,
-                ...brandList.filter(
-                    (b) => !selectedBrand.some((sb) => sb.id === b.id)
-                ),
-            ]}
-            getOptionLabel={(option) => option.name}
-            isOptionEqualToValue={(option, value) =>
-                option.id === value.id
-            }
-            inputValue={inputValueBrand}
-            onInputChange={(event, newInputValue) => {
-                setInputValueBrand(newInputValue);
-                setBrandLimit(11);
-            }}
-            value={selectedBrand}
-            onChange={(event, newValue) => {
-                setSelectedBrand(newValue);
-            }}
-            renderTags={() => null}
-            noOptionsText={inputValueBrand ? "No options" : ""}
-            renderOption={(props, option) => {
-                const isSelected = selectedBrand.some(
-                    (b) => b.id === option.id
-                );
-                return (
-                    <Box
-                        component="li"
-                        {...props}
-                        onClick={() => toggleSelection(option)}
-                        sx={{
-                            backgroundColor: isSelected
-                                ? "#b6d5f3 !important"
-                                : "transparent",
-                            fontSize: 13,
-                            cursor: "pointer",
+    fullWidth = true
+}) => {
+    return (
+        <Box sx={{
+            position: 'relative',
+            width: fullWidth ? '100%' : 'auto',
+        }}>
+            <Autocomplete
+                multiple
+                disableCloseOnSelect
+                disablePortal
+                options={[
+                    ...selectedBrand,
+                    ...brandList.filter(
+                        (b) => !selectedBrand.some((sb) => sb.id === b.id)
+                    ),
+                ]}
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, value) =>
+                    option.id === value.id
+                }
+                inputValue={inputValueBrand}
+                onInputChange={(event, newInputValue) => {
+                    setInputValueBrand(newInputValue);
+                    setBrandLimit(11);
+                }}
+                value={selectedBrand}
+                onChange={(event, newValue) => {
+                    setSelectedBrand(newValue);
+                }}
+                renderTags={() => null}
+                noOptionsText={inputValueBrand ? "No options" : ""}
+                renderOption={(props, option) => {
+                    const isSelected = selectedBrand.some(
+                        (b) => b.id === option.id
+                    );
+                    return (
+                        <Box
+                            component="li"
+                            {...props}
+                            onClick={() => toggleSelection(option)}
+                            sx={{
+                                backgroundColor: isSelected
+                                    ? "#b6d5f3 !important"
+                                    : "transparent",
+                                fontSize: 13,
+                                cursor: "pointer",
+                                whiteSpace: 'normal',
+                                wordBreak: 'break-word',
+                            }}
+                            key={option.id}
+                        >
+                            {option.name}
+                        </Box>
+                    );
+                }}
+                renderInput={(params) => (
+                    <TextField
+                        {...params}
+                        label={label}
+                        size="small"
+                        placeholder="Search brands..."
+                        InputProps={{
+                            ...params.InputProps,
+                            endAdornment: <>{params.InputProps.endAdornment}</>,
                         }}
-                        key={option.id}
-                    >
-                        {option.name}
-                    </Box>
-                );
-            }}
-            renderInput={(params) => (
-                <TextField
-                    {...params}
-                    label="Brands"
-                    size="small"
-                    placeholder="Search brands..."
-                    InputProps={{
-                        ...params.InputProps,
-                        endAdornment: <>{params.InputProps.endAdornment}</>,
-                    }}
-                />
-            )}
-            PopperComponent={(props) => (
-                <Box
-                    {...props}
-                    sx={{
-                        zIndex: 1300,
-                        width: 220,
-                        bgcolor: "white",
-                        boxShadow: 3,
-                        borderRadius: 1,
-                        overflow: "auto",
-                        maxHeight: 300,
-                        position: "absolute",
-                    }}
-                    onScroll={(event) => {
+                        fullWidth={fullWidth}
+                    />
+                )}
+                PaperComponent={(props) => (
+                    <Paper
+                        {...props}
+                        sx={{
+                            width: '100% !important',
+                            maxWidth: '100% !important',
+                            margin: 0,
+                        }}
+                    />
+                )}
+                ListboxProps={{
+                    onScroll: (event) => {
                         const { scrollTop, scrollHeight, clientHeight } =
                             event.target;
                         if (
@@ -100,53 +102,55 @@ const BrandSelector = ({
                         ) {
                             setBrandLimit((prev) => prev + 10);
                         }
-                    }}
-                >
-                    {/* {selectedBrand.length > 0 && (
-                      <Box
-                        sx={{
-                          display: 'flex',
-                          overflowX: 'auto',
-                          whiteSpace: 'nowrap',
-                          gap: 1,
-                          px: 1,
-                          pt: 1,
-                        }}
-                      >
-                        {selectedBrand.map((brand) => (
-                          <Chip
-                            key={brand.id}
-                            label={brand.name}
-                            size="small"
-                            onDelete={() => handleRemove(brand.id)}
-                            sx={{
-                              backgroundColor: '#007bff',
-                              color: '#fff',
-                              fontWeight: 500,
-                              fontSize: '0.75rem',
-                              '.MuiChip-deleteIcon': {
-                                color: '#fff',
-                              },
-                            }}
-                          />
-                        ))}
-                      </Box>
-                    )} */}
-                    {props.children}
-                    {/* {isLoading && <div style={{ padding: 8 }}>Loading more brands...</div>} */}
-                </Box>
-            )}
-            sx={{
-                "& .MuiInputBase-root": {
-                    height: 40,
-                    fontSize: 14,
-                    width: 190,
-                },
-                "& input": {
-                    fontSize: 13,
-                },
-            }}
-        />
-    </Box>
-)
-export default BrandSelector
+                    },
+                    sx: {
+                        maxHeight: 300,
+                        overflowY: 'auto',
+                    }
+                }}
+                slotProps={{
+                    popper: {
+                        disablePortal: true,
+                        placement: 'bottom-start',
+                        modifiers: [
+                            {
+                                name: 'flip',
+                                enabled: false,
+                            },
+                            {
+                                name: 'preventOverflow',
+                                enabled: true,
+                                options: {
+                                    altAxis: false,
+                                    tether: false,
+                                },
+                            },
+                        ],
+                        sx: {
+                            width: '100% !important',
+                            left: '0 !important',
+                            right: '0 !important',
+                            zIndex: 1300,
+                        }
+                    }
+                }}
+                sx={{
+                    width: '100%',
+                    "& .MuiInputBase-root": {
+                        height: 40,
+                        fontSize: 14,
+                        width: '100%',
+                    },
+                    "& input": {
+                        fontSize: 13,
+                    },
+                    "& .MuiAutocomplete-popper": {
+                        width: '100% !important',
+                    }
+                }}
+            />
+        </Box>
+    );
+};
+
+export default BrandSelector;   

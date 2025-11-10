@@ -6,24 +6,12 @@ import {
   MenuItem,
 } from '@mui/material';
 
-/**
- * Reusable Country Selector Component
- * Defaults to US if no country is selected
- * 
- * @param {Object} props
- * @param {string} props.selectedCountry - Currently selected country code
- * @param {function} props.onCountryChange - Callback function when country changes
- * @param {string} props.label - Label for the select (optional, default: empty)
- * @param {string} props.size - Size of the select (optional, default: "small")
- * @param {number} props.minWidth - Minimum width of the FormControl (optional, default: 180)
- * @param {Object} props.sx - Additional sx styles (optional)
- */
 const CountrySelector = ({
   selectedCountry,
   onCountryChange,
   label = '',
   size = 'small',
-  minWidth = 180,
+  fullWidth = false,
   sx = {},
 }) => {
   const countries = [
@@ -31,15 +19,12 @@ const CountrySelector = ({
     { code: 'AU', name: 'Australia' },
     { code: 'UK', name: 'United Kingdom' },
   ];
-
-  // Set default to US if no country is selected
   const effectiveCountry = selectedCountry || 'US';
-
   return (
     <FormControl
       size={size}
+      fullWidth={fullWidth}
       sx={{
-        minWidth,
         '& .MuiOutlinedInput-root': {
           backgroundColor: 'white',
           '& fieldset': { borderColor: '#cacaca' },
@@ -52,6 +37,30 @@ const CountrySelector = ({
         value={effectiveCountry}
         onChange={(e) => onCountryChange(e.target.value)}
         inputProps={{ 'aria-label': 'country select' }}
+        native={false}
+        MenuProps={{
+          disableScrollLock: true,
+          anchorOrigin: {
+            vertical: 'bottom',
+            horizontal: 'left',
+          },
+          transformOrigin: {
+            vertical: 'top',
+            horizontal: 'left',
+          },
+          PaperProps: {
+            sx: {
+              maxWidth: 'calc(100vw - 32px)',
+              left: '16px !important',
+              right: '16px !important',
+              width: 'auto !important',
+              '& .MuiMenuItem-root': {
+                whiteSpace: 'normal',
+                wordBreak: 'break-word',
+              },
+            },
+          },
+        }}
       >
         {countries.map((country) => (
           <MenuItem key={country.code} value={country.code}>
@@ -62,5 +71,4 @@ const CountrySelector = ({
     </FormControl>
   );
 };
-
 export default CountrySelector;

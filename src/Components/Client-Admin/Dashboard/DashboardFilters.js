@@ -14,10 +14,7 @@ import {
   Chip,
   IconButton,
 } from "@mui/material";
-import {
-  Refresh,
-  ArrowBack as ArrowBackIcon,
-} from "@mui/icons-material";
+import { Refresh, ArrowBack as ArrowBackIcon } from "@mui/icons-material";
 import { DatePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
@@ -74,7 +71,7 @@ function DashboardFilters({
     <Box
       sx={{
         position: "fixed",
-        top: 0,
+        top: 50,
         left: 0,
         width: "100%",
         height: "100vh",
@@ -82,43 +79,49 @@ function DashboardFilters({
         zIndex: 2000,
       }}
     >
-      {/* --- Header (secondary bar just below global navbar) --- */}
       <Box
         sx={{
-          backgroundColor: "#000080",
-          display: "flex",
-          alignItems: "center",
-          py: 1,
           px: 2,
-          color: "#fff",
+          py: 2,
+          top: 0,
+          overflowY: "auto",
+          // height: "calc(100vh - 180px)",
+          pb: 10,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          "@media (max-width:600px)": {
+            justifyContent: "center",
+            // height: "calc(100vh - 200px)",
+            px: 1,
+          },
         }}
       >
-        <IconButton edge="start" color="inherit" onClick={onClose} sx={{ mr: 1 }}>
-          <ArrowBackIcon sx={{ color: "#fff" }} />
-        </IconButton>
         <Typography sx={{ fontWeight: 600, fontSize: 18 }}>Filters</Typography>
       </Box>
 
-      {/* --- Scrollable filter form --- */}
       <Box
         sx={{
           px: 2,
           py: 2,
           overflowY: "auto",
-          height: "calc(100vh - 120px)", // minus top + action bar
+          height: "calc(100vh - 120px)",
           pb: 10,
         }}
       >
         <Grid container spacing={2}>
-          {/* Country */}
           <Grid item xs={12}>
             <CountrySelector
               selectedCountry={selectedCountry}
+              fullWidth={true}
+              size="small"
+              sx={{
+                "& .MuiInputBase-root": { height: 40 },
+              }}
               onCountryChange={(country) => setSelectedCountry(country)}
             />
           </Grid>
 
-          {/* Brand */}
           <Grid item xs={12}>
             <BrandSelector
               selectedBrand={selectedBrand}
@@ -132,10 +135,10 @@ function DashboardFilters({
               hasMore={hasMore}
               toggleSelection={toggleSelection}
               label="Brands"
+               fullWidth={true}
             />
           </Grid>
 
-          {/* SKU */}
           <Grid item xs={12}>
             <Autocomplete
               multiple
@@ -166,7 +169,6 @@ function DashboardFilters({
             />
           </Grid>
 
-          {/* ASIN / Product ID */}
           <Grid item xs={12}>
             <Autocomplete
               multiple
@@ -198,7 +200,6 @@ function DashboardFilters({
             />
           </Grid>
 
-          {/* Preset */}
           <Grid item xs={12}>
             <FormControl size="small" sx={{ width: "100%" }}>
               <InputLabel>Preset</InputLabel>
@@ -220,7 +221,6 @@ function DashboardFilters({
             </FormControl>
           </Grid>
 
-          {/* Dates */}
           <Grid item xs={6}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               <DatePicker
@@ -255,7 +255,6 @@ function DashboardFilters({
           </Grid>
         </Grid>
 
-        {/* Active filters */}
         {activeFilters && activeFilters.length > 0 && (
           <Box
             sx={{
@@ -282,54 +281,52 @@ function DashboardFilters({
         )}
       </Box>
 
-      {/* --- Fixed Bottom Apply / Reset Bar --- */}
-      {/* --- Fixed Bottom Apply / Reset Bar --- */}
-<Box
-  sx={{
-    position: "fixed",
-    bottom: 100, // move it above your persistent bottom navigation
-    left: 0,
-    right: 0,
-    backgroundColor: "#fff",
-    borderTop: "1px solid #ddd",
-    p: 1.5,
-    display: "flex",
-    justifyContent: "space-between",
-    zIndex: 3000,
-    pb: "env(safe-area-inset-bottom)", // iOS home-bar safety
-  }}
->
-  <Button
-    variant="outlined"
-    onClick={handleClearFilter}
-    sx={{
-      borderColor: "#000080",
-      color: "#000080",
-      textTransform: "none",
-      fontWeight: 600,
-      flex: 1,
-      mr: 1,
-      height: 44,
-    }}
-  >
-    Reset
-  </Button>
+      <Box
+        sx={{
+          position: "fixed",
+          bottom: 100, // move it above your persistent bottom navigation
+          left: 0,
+          right: 0,
+          backgroundColor: "#fff",
+          borderTop: "1px solid #ddd",
+          p: 1.5,
+          display: "flex",
+          justifyContent: "space-between",
+          zIndex: 3000,
+          pb: "env(safe-area-inset-bottom)", // iOS home-bar safety
+        }}
+      >
+        <Button
+          variant="outlined"
+          onClick={handleClearFilter}
+          sx={{
+            borderColor: "#000080",
+            color: "#000080",
+            textTransform: "none",
+            fontWeight: 600,
+            flex: 1,
+            mr: 1,
+            height: 44,
+          }}
+        >
+          Reset
+        </Button>
 
-  <Button
-    variant="contained"
-    onClick={onClose}
-    sx={{
-      backgroundColor: "#000080",
-      "&:hover": { backgroundColor: "darkblue" },
-      textTransform: "none",
-      fontWeight: 600,
-      flex: 1,
-      height: 44,
-    }}
-  >
-    Apply
-  </Button>
-</Box>
+        <Button
+          variant="contained"
+          onClick={onClose}
+          sx={{
+            backgroundColor: "#000080",
+            "&:hover": { backgroundColor: "darkblue" },
+            textTransform: "none",
+            fontWeight: 600,
+            flex: 1,
+            height: 44,
+          }}
+        >
+          Apply
+        </Button>
+      </Box>
     </Box>
   );
 }

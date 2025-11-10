@@ -42,6 +42,9 @@ import { formatCurrency } from "../../../../utils/currencyFormatter";
 dayjs.extend(utc);
 function MarketplaceRow({ row, index }) {
   const [open, setOpen] = useState(false);
+  const theme=useTheme()
+  const isMobile=useMediaQuery(theme.breakpoints.down('sm'))
+
   const isFirstRow = index === 0;
   const cellStyle = {
     ...fontStyles,
@@ -49,7 +52,51 @@ function MarketplaceRow({ row, index }) {
     fontWeight: 600,
     fontSize: "14px",
   };
+  const getDataForMobile = () => [
+    { label: "Marketplace", value: row.marketplace, isHeader: true },
+    { label: "Gross Revenue", value: formatCurrency(row.currency_list[0]?.grossRevenue), color: row.currency_list[0]?.grossRevenue < 0 ? "red" : "black" },
+    { label: "Expenses", value: formatCurrency(row.currency_list[0]?.expenses), color: row.currency_list[0]?.expenses < 0 ? "red" : "black" },
+    { label: "COGS", value: formatCurrency(row.currency_list[0]?.total_cogs), color: row.currency_list[0]?.total_cogs < 0 ? "red" : "black" },
+    { label: "Net Profit", value: formatCurrency(row.currency_list[0]?.netProfit), color: row.currency_list[0]?.netProfit < 0 ? "red" : "black" },
+    { label: "Margin", value: `${row.currency_list[0]?.margin?.toFixed(2)}%` },
+    { label: "ROI", value: `${row.currency_list[0]?.roi?.toFixed(2)}%` },
+    { label: "Refunds", value: row.currency_list[0]?.refunds },
+    { label: "Units Sold", value: row.currency_list[0]?.unitsSold },
+  ];
 
+  if(isMobile)
+  {
+    return (
+      <>
+      <TableRow>
+        <TableCell sx={{borderBottom:'none',pb:0}}>
+          <Box sx={{
+            border:'1px solid #e0e0e0',borderRadius:'8px',mb:2,backgroundColor:"#fff",boxShadow:"0 1px 3px rgba(0,0,0,0.0.5)"
+          }}>
+            <Box sx={{display:"flex",alignItems:'center',p:1,borderBottom:'1px solid #f0f0f0'}}>
+              <IconButton size='small'onClick={()=>setOpen(!open)} sx={{mr:1}}>
+                {open?<KeyboardArrowUp/>:<KeyboardArrowDown/>}
+              </IconButton>
+              <Typography sx={{...fontStyles,fontWeight:600,fontSize:'14px'}}>
+                {row.marketplace}
+              </Typography>
+            </Box>
+            <Box sx={{p:2,display:open?'block':'none'}}>
+              {getDataForMobile().slice(1).map((data,i)=>(
+                <Box key={i} sx={{display:'flex',justifyContent:'space-between',mb:1,fontSize:"14px"}}>
+                  <Typography sx={{color:"#666",mr:2}}>{data.label}</Typography>
+                  <Typography sx={{fontWeight:600,color:data.color||'black'}}>{data.value}</Typography>
+                  </Box>  
+                  
+              ))}
+
+            </Box>
+          </Box>
+        </TableCell>
+      </TableRow>
+      </>
+    )
+  }
 
   return (
     <>
