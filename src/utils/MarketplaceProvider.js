@@ -7,6 +7,7 @@ export const MarketplaceProvider = ({ userId, children }) => {
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [selectedCountry,setSelectedCountry]=useState('US')
 
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export const MarketplaceProvider = ({ userId, children }) => {
   }, [userId])
 
   return (
-    <MarketplaceContext.Provider value={{ categories, loading }}>
+    <MarketplaceContext.Provider value={{ categories, loading,error,selectedCountry,setSelectedCountry }}>
       {children}
     </MarketplaceContext.Provider>
   )

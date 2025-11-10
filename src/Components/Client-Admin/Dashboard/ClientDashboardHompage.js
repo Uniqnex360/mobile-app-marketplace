@@ -15,7 +15,6 @@ import UserList from "../UserFeild/UserList";
 import UserDetail from "../UserFeild/UserDetial";
 import MyProductDetial from '../Dashboard/MyProducts/ProductsLoading/MyProductDetial';
 import SalesProductDetailPage from "../Sales/SalesProductDetialPage/SalesProductDetail";
-import DashboardFilters from "./DashboardFilters";
 
 const ClientDashboardHomepage = () => {
   const theme = useTheme();

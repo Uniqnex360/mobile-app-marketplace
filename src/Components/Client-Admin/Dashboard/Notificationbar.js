@@ -31,7 +31,6 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import FilterAltIcon from "@mui/icons-material/FilterAlt";
 import { useMarketplace } from "../../../utils/MarketplaceProvider";
 import { useNavigate } from "react-router-dom";
-import DashboardFilters from "./DashboardFilters";
 const accentColor = "#000080";
 function Notificationbar() {
   const navigate = useNavigate();
