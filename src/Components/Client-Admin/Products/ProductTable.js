@@ -58,27 +58,32 @@ const ProductTable = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [importOpen, setImportOpen] = useState(false);
-  const [filterVisible, setFilterVisible] = useState(false);
-  const [updatedList, setUpdatedList] = useState([]);
-  const [UpdatedBrandId, setUpdatedBrandList] = useState([]);
-  const [selectedCategoryNames, setSelectedCategoryNames] = useState([]);
-  const [setCategoryFilterList, setsetCategoryFilterList] = useState([]);
-  const [currentColumn, setCurrentColumn] = useState("");
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [filterVisible, setFilterVisible] = useState(false); // Unused in this snippet
+  const [updatedList, setUpdatedList] = useState([]); // Unused in this snippet's logic
+  const [UpdatedBrandId, setUpdatedBrandList] = useState([]); // Unused in this snippet's logic
+  const [selectedCategoryNames, setSelectedCategoryNames] = useState([]); // Unused in this snippet
+  const [setCategoryFilterList, setsetCategoryFilterList] = useState([]); // Unused in this snippet
+  const [currentColumn, setCurrentColumn] = useState(""); // Unused in this snippet
+  const [anchorEl, setAnchorEl] = useState(null); // Unused in this snippet
   const [sortConfig, setSortConfig] = useState({ key: "", direction: "asc" });
-  const [brandFilterList, setBrandFilterList] = useState([]);
+  const [brandFilterList, setBrandFilterList] = useState([]); // Unused in this snippet
   const [rowsPerPage, setRowsPerPage] = useState(50);
   const [productData, setProductData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalPages, setTotalPages] = useState(1);
   const [productCount, setProductCount] = useState(0);
   const [isFetching, setIsFetching] = useState(false);
-  const [expandedProduct, setExpandedProduct] = useState(null);
-  const [categories, setCategories] = useState(["All", "Category 1", "Category 2"]);
+  const [expandedProduct, setExpandedProduct] = useState(null); // Unused in this snippet
+  const [categories, setCategories] = useState([ // Unused in this snippet
+    "All",
+    "Category 1",
+    "Category 2",
+  ]);
 
   const initialPage = parseInt(searchParams.get("page"), 10) || 1;
   const [page, setPage] = useState(initialPage);
-  const initialRowsPerPage = parseInt(searchParams.get("rowsPerPage"), 10) || 50;
+  // initialRowsPerPage is already set by `rowsPerPage` state, no need for another initial value here
+  // const initialRowsPerPage = parseInt(searchParams.get("rowsPerPage"), 10) || 50;
 
   let lastParamsRef = useRef("");
 
@@ -89,10 +94,19 @@ const ProductTable = () => {
       : { id: "all", name: "All Channels" };
   });
 
+  // Effect to set rowsPerPage from URL params on initial load
   useEffect(() => {
-    setRowsPerPage(initialRowsPerPage);
-  }, [location.search]);
+    const paramRowsPerPage = parseInt(searchParams.get("rowsPerPage"), 10);
+    if (!isNaN(paramRowsPerPage) && paramRowsPerPage > 0) {
+      setRowsPerPage(paramRowsPerPage);
+    } else {
+      // If no valid param, ensure default is set if not already
+      setRowsPerPage(50);
+    }
+  }, [location.search, searchParams]);
 
+
+  // Effect to ensure 'page' param exists in URL
   useEffect(() => {
     if (!searchParams.has("page")) {
       searchParams.set("page", "1");
@@ -102,6 +116,8 @@ const ProductTable = () => {
     }
   }, [location, navigate, searchParams]);
 
+
+  // Effect to fetch products when dependencies change
   useEffect(() => {
     const currentParams = JSON.stringify({
       updatedList,
@@ -113,42 +129,58 @@ const ProductTable = () => {
       searchQuery,
     });
 
+    // Only fetch if parameters have actually changed
     if (lastParamsRef.current !== currentParams) {
       lastParamsRef.current = currentParams;
       fetchProducts();
     }
-  }, [updatedList, UpdatedBrandId, page, rowsPerPage, sortConfig, selectedCategory, searchQuery]);
+  }, [
+    updatedList,
+    UpdatedBrandId,
+    page,
+    rowsPerPage,
+    sortConfig,
+    selectedCategory,
+    searchQuery,
+  ]);
 
+  // Effect to handle search query from location state (e.g., from another page's link)
   useEffect(() => {
     if (location.state && location.state.searchQuery) {
       setSearchTerm(location.state.searchQuery);
       setSearchQuery(location.state.searchQuery);
+      // Clear location state after use to prevent re-applying on future navigation
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location.state]);
+  }, [location.state, location.pathname, navigate]);
 
+
+  // Handler for opening product import modal
   const handleImportClick = () => {
     setImportOpen(true);
   };
 
+  // Handlers for sorting menu (currently unused in UI snippet)
   const handleOpenMenu = (event, column) => {
     setAnchorEl(event.currentTarget);
     setCurrentColumn(column);
   };
-
   const handleSelectSort = (key, direction) => {
     setSortConfig({ key, direction });
     setPage(1);
     setAnchorEl(null);
   };
-
   const handleCloseMenu = () => {
     setAnchorEl(null);
   };
 
+
+  // Handler for closing product import modal
   const handleImportClose = () => {
     setImportOpen(false);
   };
 
+  // Function to fetch product data from API
   const fetchProducts = async () => {
     if (isFetching) return;
 
@@ -164,11 +196,13 @@ const ProductTable = () => {
         userIds = data.id;
       }
 
-      const validRowsPerPage = rowsPerPage && rowsPerPage > 0 ? rowsPerPage : 50;
+      // Ensure valid rowsPerPage for API request
+      const validRowsPerPage =
+        rowsPerPage && rowsPerPage > 0 ? rowsPerPage : 50;
       const skip = (page - 1) * validRowsPerPage;
 
       const response = await axios.post(
-        `${process.env.REACT_APP_IP}getProductList/`,
+        `${process.env.REACT_APP_IP}getProductList/`, // Make sure REACT_APP_IP is correctly set in your .env
         {
           user_id: userIds,
           marketplace: selectedCategory?.id === "all" ? "all" : "",
@@ -176,12 +210,12 @@ const ProductTable = () => {
             selectedCategory?.id && selectedCategory.id !== "all"
               ? selectedCategory.id
               : "",
-          category_name: updatedList,
-          brand_id_list: UpdatedBrandId,
+          category_name: updatedList, // Will be empty array if no filters selected
+          brand_id_list: UpdatedBrandId, // Will be empty array if no filters selected
           search_query: searchQuery,
           sort_by: sortConfig.key,
           sort_by_value: sortConfig.direction === "asc" ? 1 : -1,
-          skip: skip >= 0 ? skip : 0,
+          skip: skip >= 0 ? skip : 0, // Ensure skip is not negative
           limit: validRowsPerPage,
         }
       );
@@ -193,11 +227,11 @@ const ProductTable = () => {
       ) {
         const products = response.data.data.product_list.map((product) => ({
           productId: product.id,
-          image: product.image_url || soon,
+          image: product.image_url || soon, // Use 'soon' placeholder if no image
           title: product.product_title || "N/A",
           sku: product.sku || "N/A",
           category: product.category || "N/A",
-          marketplacelogo: product.marketplace_image_url || {
+          marketplacelogo: product.marketplace_image_url || { // Placeholder for marketplace logo
             image_url: soon,
             name: "N/A",
           },
@@ -207,7 +241,9 @@ const ProductTable = () => {
 
         setProductData(products);
         setProductCount(response.data.data.total_count);
-        setTotalPages(Math.ceil(response.data.data.total_count / validRowsPerPage));
+        setTotalPages(
+          Math.ceil(response.data.data.total_count / validRowsPerPage)
+        );
       } else {
         console.error("No valid products found in response:", response.data);
         setProductData([]);
@@ -216,54 +252,69 @@ const ProductTable = () => {
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+      toast.error("Failed to fetch products. Please try again.", {
+        position: "top-right",
+        autoClose: 3000,
+      });
+      setProductData([]);
+      setProductCount(0);
+      setTotalPages(1);
     } finally {
       setLoading(false);
       setIsFetching(false);
     }
   };
 
+  // Handler for changing rows per page
   const handleRowsPerPageChange = (e) => {
-    const newRowsPerPage = e.target.value;
+    const newRowsPerPage = Number(e.target.value);
     setRowsPerPage(newRowsPerPage);
+    // Reset to page 1 when changing rows per page
     navigate(`/Home/products?page=1&rowsPerPage=${newRowsPerPage}`);
     setPage(1);
   };
 
-  const handlePageChange = (e, value) => {
-    navigate(`/Home/products?page=${value}&rowsPerPage=${rowsPerPage}`);
-    setPage(value);
+  // Handler for changing page
+  const handlePageChange = (newPage) => {
+    navigate(`/Home/products?page=${newPage}&rowsPerPage=${rowsPerPage}`);
+    setPage(newPage);
   };
 
+  // Handler for search input with debounce
+  const searchTimeoutRef = useRef(null);
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchTerm(value);
-    if (e.target.timeout) {
-      clearTimeout(e.target.timeout);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
-    e.target.timeout = setTimeout(() => {
+    searchTimeoutRef.current = setTimeout(() => {
       setSearchQuery(value);
-      setPage(1);
-    }, 500);
+      setPage(1); // Reset to page 1 on new search
+    }, 500); // Debounce for 500ms
   };
+
 
   const handleAddFilterClick = () => {
     setFilterVisible(!filterVisible);
   };
 
+  // Handler for resetting all filters and search
   const handleResetChange = () => {
     setSearchTerm("");
     setSearchQuery("");
     setSortConfig({ key: "", direction: "asc" });
-    setUpdatedBrandList([]);
-    setUpdatedList([]);
-    setFilterVisible(false);
+    setUpdatedBrandList([]); // Clears brand filters
+    setUpdatedList([]); // Clears category filters
+    setFilterVisible(false); // Closes filter UI if open
 
     localStorage.removeItem("marketplace");
     const resetCategory = { id: "all", name: "All Channels" };
     setSelectedCategory(resetCategory);
     localStorage.setItem("selectedCategory", JSON.stringify(resetCategory));
 
-    setPage(1);
+    setPage(1); // Reset to first page
 
     toast.success("Filters reset successfully!", {
       position: "top-right",
@@ -273,20 +324,18 @@ const ProductTable = () => {
     });
   };
 
+  // Handlers for filter selections (currently unused by actual filter UI)
   const handleProduct = (category) => {
     localStorage.setItem("marketplace", JSON.stringify(category));
     setSelectedCategory(category);
     setPage(1);
   };
-
   const handleCategoryList = (catList) => {
     setsetCategoryFilterList(catList);
   };
-
   const handleBrandList = (brandList) => {
     setBrandFilterList(brandList);
   };
-
   const handleBrandChange = (val) => {
     const productList = val?.updatedList;
     if (!Array.isArray(productList)) {
@@ -297,7 +346,6 @@ const ProductTable = () => {
     setUpdatedList(productTypeNames);
     setPage(1);
   };
-
   const handleFilterBrand = (val) => {
     const productList = val?.updatedList;
     if (!Array.isArray(productList)) {
@@ -309,464 +357,427 @@ const ProductTable = () => {
     setPage(1);
   };
 
-  // 📱 Mobile: Render product as expandable card
-  const renderMobileProductCard = (product, index) => {
-    return (
-      <Card key={product.productId} sx={{ mb: 2, boxShadow: 2 }}>
-        <CardContent
-          sx={{ p: 2, "&:last-child": { pb: 2 }, cursor: "pointer" }}
-          onClick={() => setExpandedProduct(expandedProduct === index ? null : index)}
-        >
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
-              {product.sku}
-            </Typography>
-            <IconButton size="small">
-              {expandedProduct === index ? <ExpandLess /> : <ExpandMore />}
-            </IconButton>
-          </Box>
-
-          <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
-            <Avatar
-              src={product.image}
-              alt="Product"
-              variant="rounded"
-              sx={{ width: 60, height: 60, mr: 2 }}
-            />
-            <Typography variant="body2" sx={{ flex: 1 }}>
-              {product.title}
-            </Typography>
-          </Box>
-
-          <Collapse in={expandedProduct === index}>
-            <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid #eee" }}>
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Category
-                  </Typography>
-                  <Typography variant="body2">{product.category}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Quantity
-                  </Typography>
-                  <Typography variant="body2">{product.quantity}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Price
-                  </Typography>
-                  <Typography variant="body2">{product.price}</Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography variant="caption" color="text.secondary">
-                    Channel
-                  </Typography>
-                  <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                    {product.marketplacelogo && product.marketplacelogo.length > 0 ? (
-                      product.marketplacelogo.map((imageUrl, imgIndex) => (
-                        <Avatar
-                          key={imgIndex}
-                          src={imageUrl}
-                          variant="rounded"
-                          sx={{ width: 24, height: 24 }}
-                        />
-                      ))
-                    ) : (
-                      <Typography variant="caption">N/A</Typography>
-                    )}
-                  </Stack>
-                </Grid>
-                <Grid item xs={12} sx={{ mt: 1 }}>
-                  <Button
-                    component={Link}
-                    to={`/Home/products/details/${product.productId}?page=${page}&&rowsPerPage=${rowsPerPage}`}
-                    size="small"
-                    variant="contained"
-                    color="primary"
-                    startIcon={<EditIcon />}
-                    fullWidth
-                    sx={{ textTransform: "none" }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Edit Product
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
-          </Collapse>
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // 💻 Desktop: Render table
-  const renderDesktopTable = () => (
-    <TableContainer
-      component={Paper}
-      sx={{
-        maxHeight: "70vh",
-        border: "1px solid #ddd",
-        overflow: "auto",
-        "&::-webkit-scrollbar": {
-          height: "4px",
-          width: "4px",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#888",
-          borderRadius: "10px",
-        },
+  return (
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "500px",
+        margin: "0 auto",
+        padding: "12px",
+        backgroundColor: "#f9f9f9",
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
       }}
     >
-      <Table stickyHeader sx={{ minWidth: 800 }}>
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ textAlign: "center", backgroundColor: "#f6f6f6" }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Image
-              </Typography>
-            </TableCell>
-            <TableCell sx={{ textAlign: "center", backgroundColor: "#f6f6f6", minWidth: 60 }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                SKU
-              </Typography>
-            </TableCell>
-            <TableCell sx={{ textAlign: "center", backgroundColor: "#f6f6f6", minWidth: 210 }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Title
-                <IconButton onClick={(e) => handleOpenMenu(e, "product_title")}>
-                  <MoreVertIcon sx={{ fontSize: "14px" }} />
-                </IconButton>
-              </Typography>
-            </TableCell>
-            <TableCell sx={{ textAlign: "center", minWidth: 120, backgroundColor: "#f6f6f6" }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Category
-                <IconButton onClick={(e) => handleOpenMenu(e, "category")}>
-                  <MoreVertIcon sx={{ fontSize: "14px" }} />
-                </IconButton>
-              </Typography>
-            </TableCell>
-            <TableCell sx={{ textAlign: "center", backgroundColor: "#f6f6f6" }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Channel
-              </Typography>
-            </TableCell>
-            <TableCell sx={{ textAlign: "center", backgroundColor: "#f6f6f6", minWidth: 90 }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Quantity
-                <IconButton onClick={(e) => handleOpenMenu(e, "quantity")}>
-                  <MoreVertIcon sx={{ fontSize: "14px" }} />
-                </IconButton>
-              </Typography>
-            </TableCell>
-            <TableCell sx={{ textAlign: "center", minWidth: 70, backgroundColor: "#f6f6f6" }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Price
-                <IconButton onClick={(e) => handleOpenMenu(e, "price")}>
-                  <MoreVertIcon sx={{ fontSize: "14px" }} />
-                </IconButton>
-              </Typography>
-            </TableCell>
-            <TableCell sx={{ textAlign: "center", backgroundColor: "#f6f6f6" }}>
-              <Typography variant="subtitle2" fontWeight="bold">
-                Action
-              </Typography>
-            </TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {productData.map((product) => (
-            <TableRow key={product.productId} hover>
-              <TableCell sx={{ textAlign: "center" }}>
-                <Link
-                  to={`/Home/products/details/${product.productId}?page=${page}&&rowsPerPage=${rowsPerPage}`}
-                  style={{ textDecoration: "none" }}
-                >
-                  <img
-                    src={product.image}
-                    alt="Product"
-                    style={{
-                      width: 50,
-                      height: 50,
-                      objectFit: "cover",
-                      borderRadius: 5,
+      <div
+        style={{
+          backgroundColor: "white",
+          padding: "16px",
+          borderRadius: "8px",
+          marginBottom: "16px",
+          boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+        }}
+      >
+        {/* TOP CONTROL BAR: Import, Export, Reset buttons (left) and Total Products count (right) */}
+        
+
+        {/* Search Input */}
+        <TextField
+          fullWidth
+          variant="outlined"
+          size="small"
+          placeholder="Search Title | SKU | Product Type"
+          value={searchTerm}
+          onChange={handleSearchChange}
+          sx={{ marginBottom: "12px" }} // Added MUI styling for consistency
+        />
+
+        {/* All Channels Selector (only one select here now) */}
+        {/* The rowsPerPage select has been moved to the bottom */}
+       
+        <Box
+          sx={{
+            display: "flex",
+            gap: "8px",
+            justifyContent: "space-between", // Adjusted to space-between
+            alignItems: "center",
+            marginBottom: "12px", // Space below this row
+            flexWrap: 'wrap', // Allow wrapping on smaller screens if necessary
+          }}
+        >
+           <Select
+          value={selectedCategory.id}
+          onChange={(e) => {
+            const newCat = { id: e.target.value, name: e.target.value };
+            setSelectedCategory(newCat);
+            localStorage.setItem("selectedCategory", JSON.stringify(newCat));
+          }}
+          displayEmpty
+          inputProps={{ 'aria-label': 'Select channel' }}
+          size="small" // Make it small like the TextField
+          sx={{ flex: 1, minWidth: "120px" }}
+        >
+          <MenuItem value="all">All Channels</MenuItem>
+          <MenuItem value="amazon">Amazon</MenuItem>
+          <MenuItem value="ebay">eBay</MenuItem>
+        </Select>
+          <Stack direction="row" spacing={1}> {/* Stack for icon buttons */}
+            <Tooltip title="Import Products">
+              <Button
+                variant="outlined"
+                onClick={handleImportClick}
+                size="small"
+                sx={{
+                  minWidth: '36px', // Fixed width for square button
+                  width: '36px',
+                  height: '36px',
+                  padding: '0', // Remove internal padding to make icon fill
+                  borderRadius: '6px', // Match image
+                  borderColor: '#ddd', // Light border
+                  color: 'rgba(0, 0, 0, 0.6)', // Dark icon color
+                  backgroundColor: 'white', // Explicit white background
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5', // Subtle hover effect
+                    borderColor: '#bbb',
+                  },
+                  display: 'flex', // Ensure icon is centered
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <PublishIcon fontSize="small" />
+              </Button>
+            </Tooltip>
+            <Tooltip title="Export Products">
+              <Button
+                variant="outlined"
+                // Add your export handler here
+                size="small"
+                sx={{
+                  minWidth: '36px',
+                  width: '36px',
+                  height: '36px',
+                  padding: '0',
+                  borderRadius: '6px',
+                  borderColor: '#ddd',
+                  color: 'rgba(0, 0, 0, 0.6)',
+                  backgroundColor: 'white',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                    borderColor: '#bbb',
+                  },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Download fontSize="small" />
+              </Button>
+            </Tooltip>
+            <Tooltip title="Reset Filters">
+              <Button
+                variant="outlined"
+                onClick={handleResetChange}
+                size="small"
+                sx={{
+                  minWidth: '36px',
+                  width: '36px',
+                  height: '36px',
+                  padding: '0',
+                  borderRadius: '6px',
+                  borderColor: '#ddd',
+                  color: 'rgba(0, 0, 0, 0.6)',
+                  backgroundColor: 'white',
+                  '&:hover': {
+                    backgroundColor: '#f5f5f5',
+                    borderColor: '#bbb',
+                  },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Refresh fontSize="small" />
+              </Button>
+            </Tooltip>
+          </Stack>
+          <Typography
+            variant="body2"
+            sx={{ color: "#666", fontWeight: "500" }}
+          >
+            Total Products: {productCount}
+          </Typography>
+        </Box>
+      </div>
+
+      <div style={{ flex: 1, overflowY: "auto", marginBottom: "16px" }}>
+        {loading ? (
+          <div
+            style={{ textAlign: "center", padding: "40px 0", color: "#999" }}
+          >
+            <DottedCircleLoading />
+            <Typography variant="body1">Loading Products...</Typography>
+          </div>
+        ) : productData.length === 0 ? (
+          <div
+            style={{ textAlign: "center", padding: "40px 0", color: "#999" }}
+          >
+            No Products Found
+          </div>
+        ) : (
+          <div>
+            <div
+              style={{
+                overflowX: "auto",
+                marginBottom: "16px",
+                backgroundColor: "white",
+                borderRadius: "8px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+              }}
+            >
+              <Table
+                sx={{
+                  width: "100%",
+                  borderCollapse: "collapse",
+                  minWidth: "600px", // Ensure table is wide enough for columns
+                  fontSize: "13px",
+                }}
+              >
+                <TableHead>
+                  <TableRow
+                    sx={{
+                      backgroundColor: "#f5f5f5",
+                      borderBottom: "2px solid #ddd",
                     }}
-                  />
-                </Link>
-              </TableCell>
-              <TableCell sx={{ textAlign: "center", wordBreak: "break-word" }}>
-                <Link
-                  to={`/Home/products/details/${product.productId}?page=${page}&&rowsPerPage=${rowsPerPage}`}
-                  style={{ color: "#121212", textDecoration: "none" }}
-                >
-                  {product.sku}
-                </Link>
-              </TableCell>
-              <TableCell sx={{ textAlign: "center" }}>
-                <Link
-                  to={`/Home/products/details/${product.productId}?page=${page}&&rowsPerPage=${rowsPerPage}`}
-                  style={{ textDecoration: "none", color: "black" }}
-                >
-                  {product.title}
-                </Link>
-              </TableCell>
-              <TableCell sx={{ textAlign: "center" }}>{product.category}</TableCell>
-              <TableCell align="center">
-                <Box display="flex" flexWrap="wrap" justifyContent="center" gap={1}>
-                  {product.marketplacelogo && product.marketplacelogo.length > 0 ? (
-                    product.marketplacelogo.map((imageUrl, imgIndex) => (
-                      <Box
-                        key={imgIndex}
+                  >
+                    <TableCell
+                      sx={{
+                        padding: "12px",
+                        textAlign: "left",
+                        fontWeight: "600",
+                        color: "#333",
+                      }}
+                    >
+                      Product
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        padding: "12px",
+                        textAlign: "center",
+                        fontWeight: "600",
+                        color: "#333",
+                      }}
+                    >
+                      Category
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        padding: "12px",
+                        textAlign: "center",
+                        fontWeight: "600",
+                        color: "#333",
+                      }}
+                    >
+                      Quantity
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        padding: "12px",
+                        textAlign: "center",
+                        fontWeight: "600",
+                        color: "#333",
+                      }}
+                    >
+                      Price
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        padding: "12px",
+                        textAlign: "center",
+                        fontWeight: "600",
+                        color: "#333",
+                      }}
+                    >
+                      Action
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {productData.map((product) => (
+                    <TableRow
+                      key={product.productId}
+                      sx={{
+                        borderBottom: "1px solid #eee",
+                        "&:hover": { backgroundColor: "#f9f9f9" },
+                      }}
+                    >
+                      <TableCell
                         sx={{
-                          width: 30,
-                          height: 30,
-                          borderRadius: "4px",
-                          overflow: "hidden",
+                          padding: "12px",
                           display: "flex",
-                          justifyContent: "center",
                           alignItems: "center",
+                          gap: "8px",
                         }}
                       >
                         <img
-                          src={imageUrl}
-                          alt={`Marketplace ${imgIndex}`}
+                          src={product.image || soon}
+                          alt={product.title}
                           style={{
-                            width: "100%",
-                            height: "100%",
-                            objectFit: "contain",
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "4px",
+                            objectFit: "cover",
                           }}
                         />
-                      </Box>
-                    ))
-                  ) : (
-                    <Typography variant="caption">N/A</Typography>
-                  )}
-                </Box>
-              </TableCell>
-              <TableCell sx={{ textAlign: "center" }}>{product.quantity}</TableCell>
-              <TableCell sx={{ textAlign: "center" }}>{product.price}</TableCell>
-              <TableCell sx={{ textAlign: "center" }}>
-                <Link
-                  to={`/Home/products/details/${product.productId}?page=${page}&&rowsPerPage=${rowsPerPage}`}
-                  style={{ textDecoration: "none" }}
-                >
-                  <IconButton color="primary">
-                    <EditIcon sx={{ color: "#000080" }} />
-                  </IconButton>
-                </Link>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  );
+                        <Box sx={{ fontSize: "12px", flex: 1 }}>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: "600",
+                              color: "#000",
+                              marginBottom: "2px",
+                            }}
+                          >
+                            {product.sku}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              color: "#666",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: "100px",
+                              display: 'block'
+                            }}
+                          >
+                            {product.title}
+                          </Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          padding: "12px",
+                          textAlign: "center",
+                          color: "#666",
+                        }}
+                      >
+                        {product.category}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          padding: "12px",
+                          textAlign: "center",
+                          fontWeight: "600",
+                        }}
+                      >
+                        {product.quantity}
+                      </TableCell>
+                      <TableCell
+                        sx={{
+                          padding: "12px",
+                          textAlign: "center",
+                          fontWeight: "600",
+                          color: "#00a651",
+                        }}
+                      >
+                        {product.price}
+                      </TableCell>
+                      <TableCell sx={{ padding: "12px", textAlign: "center" }}>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          sx={{
+                            minWidth: '36px',
+                            width: '36px',
+                            height: '36px',
+                            padding: '0',
+                            borderRadius: '4px',
+                            borderColor: '#ddd',
+                            color: 'rgba(0, 0, 0, 0.6)',
+                            backgroundColor: 'transparent',
+                            '&:hover': {
+                              backgroundColor: '#f5f5f5',
+                              borderColor: '#bbb',
+                            },
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <EditIcon fontSize="small" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
 
-  return (
-    <Box sx={{ flex: 1, width: "100%", p: { xs: 1, sm: 2 } }}>
-      {/* 🔝 Sticky Top Controls */}
-      <Box
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: 100,
-          bgcolor: "white",
-          pt: 2,
-          pb: 1,
-          mb: 2,
-          borderBottom: "1px solid #eee",
-        }}
-      >
-        <Grid container spacing={2} alignItems="center">
-          {/* Mobile: Stack vertically */}
-          <Grid item xs={12} sm={6} md={3}>
-            <MarketplaceOption
-              handleProduct={handleProduct}
-              handleCategoryList={handleCategoryList}
-              handleBrandList={handleBrandList}
-              clearChannel={selectedCategory}
-            />
-          </Grid>
+            {/* Bottom Controls: Rows per page (left) and Pagination (right) */}
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between", // Adjusted to space-between
+                alignItems: "center",
+                gap: "8px",
+                backgroundColor: "white",
+                padding: "12px",
+                borderRadius: "8px",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.1)",
+                flexWrap: 'wrap', // Allow wrapping on small screens
+              }}
+            >
+              {/* Rows per page selector (left side) */}
+              <Select
+                value={rowsPerPage}
+                onChange={(e) => handleRowsPerPageChange(Number(e.target.value))}
+                displayEmpty
+                inputProps={{ 'aria-label': 'Rows per page' }}
+                size="small"
+                sx={{ minWidth: "100px" }}
+              >
+                <MenuItem value={25}>25/page</MenuItem>
+                <MenuItem value={50}>50/page</MenuItem>
+                <MenuItem value={75}>75/page</MenuItem>
+                <MenuItem value={100}>100/page</MenuItem>
+              </Select>
 
-          <Grid item xs={12} sm={6} md={4}>
-            <TextField
-              size="small"
-              placeholder="Search Title | SKU | Product Type"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              fullWidth
-              sx={{ "& input": { fontSize: "14px" } }}
-            />
-          </Grid>
-
-          <Grid item xs={12} sm="auto">
-            <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1,alignItems:'center'}}>
-              <Tooltip title="Filter" arrow>
+              {/* Pagination controls (right side) */}
+              <Stack direction="row" spacing={1} alignItems="center">
                 <Button
-                  variant="contained"
-                  onClick={handleAddFilterClick}
-                  sx={{
-                    bgcolor: "#000080",
-                    minWidth: "auto",
-                    p: 1,
-                    "&:hover": { bgcolor: "darkblue" },
-                  }}
+                  onClick={() => handlePageChange(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                  variant="outlined"
+                  size="small"
                 >
-                  <FilterListIcon sx={{ fontSize: "20px" }} />
+                  ← Previous
                 </Button>
-              </Tooltip>
-
-              <Tooltip title="Import" arrow>
+                <Typography
+                  variant="body2"
+                  fontWeight="600"
+                  color="#333"
+                >
+                  Page {page} of {totalPages}
+                </Typography>
                 <Button
-                  variant="contained"
-                  onClick={handleImportClick}
-                  sx={{
-                    bgcolor: "#000080",
-                    minWidth: "auto",
-                    p: 1,
-                    "&:hover": { bgcolor: "darkblue" },
-                  }}
+                  onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                  variant="outlined"
+                  size="small"
                 >
-                  <PublishIcon sx={{ fontSize: "20px" }} />
+                  Next →
                 </Button>
-              </Tooltip>
-
-              <Tooltip title="Export" arrow>
-                <Button
-                  variant="contained"
-                  sx={{
-                    bgcolor: "#000080",
-                    minWidth: "auto",
-                    p: 1,
-                    "&:hover": { bgcolor: "darkblue" },
-                  }}
-                >
-                  <Download sx={{ fontSize: "20px" }} />
-                </Button>
-              </Tooltip>
-
-              <Tooltip title="Reset" arrow>
-                <Button
-                  variant="contained"
-                  onClick={handleResetChange}
-                  sx={{
-                    bgcolor: "#000080",
-                    minWidth: "auto",
-                    p: 1,
-                    "&:hover": { bgcolor: "darkblue" },
-                  }}
-                >
-                  <Refresh sx={{ fontSize: "20px" }} />
-                </Button>
-              </Tooltip>
-            </Stack>
-          </Grid>
-
-          <Grid item xs={12} sm="auto">
-            <Typography variant="body2" sx={{ fontWeight: "bold", textAlign: "center" }}>
-              Total Products: {productCount || "0"}
-            </Typography>
-          </Grid>
-        </Grid>
-      </Box>
-
-      {/* Filters Sidebar (Desktop only) */}
-      {filterVisible && !isMobile && (
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Box sx={{ width: "215px"}}>
-            <FiltersUi
-              categories={categories}
-              setCategoryFilterList={setCategoryFilterList}
-              onProductTypeChange={handleBrandChange}
-              brandFilterList={brandFilterList}
-              onBrandTypeChange={handleFilterBrand}
-            />
-          </Box>
-        </Box>
-      )}
-
-      {/* 📦 Product List */}
-      <Box sx={{ mt: 2 }}>
-        {loading ? (
-          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-            <DottedCircleLoading />
-          </Box>
-        ) : productData.length === 0 ? (
-          <Typography variant="h6" align="center" color="text.secondary" sx={{ mt: 4 }}>
-            No Products Found
-          </Typography>
-        ) : isMobile ? (
-          // 📱 Mobile: Cards
-          productData.map((product, index) => renderMobileProductCard(product, index))
-        ) : (
-          // 💻 Desktop: Table
-          renderDesktopTable()
+              </Stack>
+            </div>
+          </div>
         )}
-      </Box>
+      </div>
 
-      {/* 🔽 Pagination */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row" },
-          alignItems: "center",
-          justifyContent: "flex-end",
-          gap: 2,
-          mt: 3,
-          p: 1,
-        }}
-      >
-        <FormControl size="small">
-          <Select value={rowsPerPage} onChange={handleRowsPerPageChange} sx={{ minWidth: 100 }}>
-            <MenuItem value={50}>50/page</MenuItem>
-            <MenuItem value={75}>75/page</MenuItem>
-            <MenuItem value={100}>100/page</MenuItem>
-          </Select>
-        </FormControl>
-        <Pagination
-          count={totalPages}
-          page={page}
-          onChange={handlePageChange}
-          color="primary"
-          size={isMobile ? "small" : "medium"}
-          showFirstButton
-          showLastButton
-        />
-      </Box>
-
-      {/* 🔽 Sorting Menu */}
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleCloseMenu}>
-        {currentColumn === "product_title" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("product_title", "asc")}>Sort A-Z</MenuItem>
-            <MenuItem onClick={() => handleSelectSort("product_title", "desc")}>Sort Z-A</MenuItem>
-          </>
-        )}
-        {currentColumn === "quantity" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("quantity", "asc")}>Sort Low to High</MenuItem>
-            <MenuItem onClick={() => handleSelectSort("quantity", "desc")}>Sort High to Low</MenuItem>
-          </>
-        )}
-        {currentColumn === "category" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("category", "asc")}>Sort A-Z</MenuItem>
-            <MenuItem onClick={() => handleSelectSort("category", "desc")}>Sort Z-A</MenuItem>
-          </>
-        )}
-        {currentColumn === "price" && (
-          <>
-            <MenuItem onClick={() => handleSelectSort("price", "asc")}>Sort Low to High</MenuItem>
-            <MenuItem onClick={() => handleSelectSort("price", "desc")}>Sort High to Low</MenuItem>
-          </>
-        )}
-      </Menu>
-
-      {/* Product Import Dialog */}
+      {/* Product Import Modal */}
       <ProductImport open={importOpen} onClose={handleImportClose} />
-    </Box>
+    </div>
   );
 };
 

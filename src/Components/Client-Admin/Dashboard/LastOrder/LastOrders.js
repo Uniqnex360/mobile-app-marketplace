@@ -4,9 +4,7 @@ import {
   CardContent,
   Typography,
   Box,
-  Grid,
   Avatar,
-  Paper,
   IconButton,
   Tooltip as MuiTooltip,
   Skeleton,
@@ -34,11 +32,13 @@ import LatestOrdersSkeleton from "./LastOrderLoading";
 import timezone from "dayjs/plugin/timezone";
 import utc from "dayjs/plugin/utc";
 import { formatCurrency } from "../../../../utils/currencyFormatter";
+
 dayjs.locale("en-in");
 dayjs.extend(localizedFormat);
 dayjs.extend(utc);
 dayjs.extend(timezone);
 
+// Custom Recharts Tooltip Component
 const CustomTooltip = React.memo(({ active, payload }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -52,20 +52,21 @@ const CustomTooltip = React.memo(({ active, payload }) => {
     const units = payload[0].payload.units || 0;
 
     return (
-      <Paper
+      <Box
         sx={{
-          p: { xs: 1, sm: 1.5 },
+          p: isMobile ? 1 : 1.5,
           borderRadius: 2,
-          boxShadow: "none",
-          minWidth: { xs: 150, sm: 180 },
+          minWidth: isMobile ? 150 : 180,
           border: "1px solid rgb(161, 173, 184)",
+          backgroundColor: 'white',
+          zIndex: 100,
         }}
       >
         <Typography
           variant="body2"
           sx={{
             color: "#485E75",
-            fontSize: { xs: "11px", sm: "14px" },
+            fontSize: isMobile ? "11px" : "14px",
             fontFamily:
               "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif",
           }}
@@ -73,31 +74,31 @@ const CustomTooltip = React.memo(({ active, payload }) => {
         >
           {startTime} - {endTime} {date.format("MMM D,")}
         </Typography>
-        <Typography 
-          variant="body2" 
-          sx={{ 
+        <Typography
+          variant="body2"
+          sx={{
             mt: 0.5,
-            fontSize: { xs: "11px", sm: "14px" }
-          }} 
+            fontSize: isMobile ? "11px" : "14px"
+          }}
           align="left"
         >
           <Box component="span" fontWeight="bold">
             {orders} {orders === 1 ? "Order" : "Orders"}
           </Box>{" "}
-          <Box component="span" color="black">
+          <Box component="span" color="text.primary">
             ({units} {units === 1 ? "unit" : "units"})
           </Box>
         </Typography>
-      </Paper>
+      </Box>
     );
   }
   return null;
 });
 
-const OrderCard = React.memo(({ order,country }) => {
+// Individual Order Card Component
+const OrderCard = React.memo(({ order, country }) => {
   const [tooltipText, setTooltipText] = useState("");
-  const [loading, setLoading] = useState(false);
-  const systemTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const [copyLoading, setCopyLoading] = useState(false);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -115,7 +116,7 @@ const OrderCard = React.memo(({ order,country }) => {
     const label = isNumberOnly ? "WPID" : "ASIN";
 
     try {
-      setLoading(true);
+      setCopyLoading(true);
       if (navigator.clipboard && window.isSecureContext) {
         await navigator.clipboard.writeText(value);
       } else {
@@ -133,12 +134,16 @@ const OrderCard = React.memo(({ order,country }) => {
       console.error("Copy failed", err);
       setTooltipText("Copy Failed");
     } finally {
-      setLoading(false);
+      setCopyLoading(false);
     }
     setTimeout(() => {
       setTooltipText(`Copy ${label}`);
     }, 1500);
   }, []);
+
+  const handleProductTitleClick = useCallback(() => {
+    console.log(`Navigate to product detail for ID: ${order.id}`);
+  }, [order.id]);
 
   return (
     <Card
@@ -147,12 +152,13 @@ const OrderCard = React.memo(({ order,country }) => {
         borderRadius: 1,
         boxShadow: "0 1px 2px rgba(0,0,0,0.1)",
         fontFamily: `"Segoe UI", Roboto, sans-serif`,
+        backgroundColor: 'white',
       }}
     >
       <CardContent
         sx={{
-          padding: { xs: "6px 10px", sm: "8px 12px" },
-          "&:last-child": { paddingBottom: { xs: "6px", sm: "8px" } },
+          padding: isMobile ? "6px 10px" : "8px 12px",
+          "&:last-child": { paddingBottom: isMobile ? "6px" : "8px" },
         }}
       >
         <Box
@@ -161,13 +167,13 @@ const OrderCard = React.memo(({ order,country }) => {
             justifyContent: "space-between",
             alignItems: "center",
             mb: 0.5,
-            flexWrap: { xs: 'wrap', sm: 'nowrap' },
-            gap: { xs: 0.5, sm: 0 }
+            flexWrap: 'wrap',
+            gap: 0.5,
           }}
         >
           <Typography
             variant="caption"
-            sx={{ fontSize: { xs: "10px", sm: "11.5px" }, color: "#555" }}
+            sx={{ fontSize: "10px", color: "#555" }}
           >
             {order.purchaseDate
               ? dayjs.tz(order.purchaseDate, "US/Pacific").format("h:mm A")
@@ -175,11 +181,11 @@ const OrderCard = React.memo(({ order,country }) => {
           </Typography>
           <Typography
             variant="caption"
-            sx={{ fontSize: { xs: "10px", sm: "12px" }, fontWeight: 500 }}
+            sx={{ fontSize: "10px", fontWeight: 500 }}
           >
             Price:{" "}
             <Box component="span" sx={{ color: "grey" }}>
-              {formatCurrency(order.price,country)}
+              {formatCurrency(order.price, country)}
             </Box>{" "}
             Quantity:{" "}
             <Box component="span" sx={{ color: "grey" }}>
@@ -188,63 +194,61 @@ const OrderCard = React.memo(({ order,country }) => {
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "flex-start", gap: { xs: 1, sm: 1.5 } }}>
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1 }}>
           <Avatar
             variant="rounded"
             src={order.imageUrl}
-            sx={{ width: { xs: 25, sm: 30 }, height: { xs: 25, sm: 30 }, mt: 0.5 }}
+            sx={{ width: 25, height: 25, mt: 0.5 }}
           />
 
           <Box sx={{ flexGrow: 1, minWidth: 0 }}>
             <CustomizeTooltip title={order?.title}>
-              <a
-                href={`/Home/product-detail/${order.id}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ textDecoration: "none" }}
+              <Typography
+                variant="subtitle2"
+                fontWeight={600}
+                onClick={handleProductTitleClick}
+                sx={{
+                  fontSize: "12px",
+                  lineHeight: 1.4,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  display: "-webkit-box",
+                  WebkitBoxOrient: "vertical",
+                  WebkitLineClamp: 1,
+                  whiteSpace: "normal",
+                  color: "#0A6FE8",
+                  fontFamily:
+                    'Nunito Sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
+                  cursor: "pointer",
+                }}
               >
-                <Typography
-                  variant="subtitle2"
-                  fontWeight={600}
-                  sx={{
-                    fontSize: { xs: "12px", sm: "14px" },
-                    lineHeight: 1.4,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    display: "-webkit-box",
-                    WebkitBoxOrient: "vertical",
-                    WebkitLineClamp: 1,
-                    whiteSpace: "normal",
-                    color: "#0A6FE8",
-                    fontFamily:
-                      'Nunito Sans, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif',
-                    cursor: "pointer",
-                  }}
-                >
-                  {order.title}
-                </Typography>
-              </a>
+                {order.title}
+              </Typography>
             </CustomizeTooltip>
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
+
+            {/* All elements in one line */}
+            <Box 
+              sx={{ 
                 mt: 0.5,
+                display: 'flex', 
+                alignItems: 'center', 
+                gap: isMobile ? 0.5 : 1,
+                flexWrap: 'wrap'
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
+              {/* Flag and ASIN */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                 <img
                   src="https://re-cdn.helium10.com/container/static/Flag-united-states-ksqXwksC.svg"
                   alt="Country Flag"
-                  width={isMobile ? 20 : 27}
-                  height={isMobile ? 12 : 16}
-                  style={{ marginRight: 6 }}
-                />{" "}
+                  width={20}
+                  height={12}
+                />
                 <Typography
                   variant="caption"
+                  component="span"
                   sx={{
-                    fontSize: { xs: "11px", sm: "14px" },
+                    fontSize: "11px",
                     color: "#485E75",
                     fontFamily:
                       "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', sans-serif",
@@ -253,39 +257,54 @@ const OrderCard = React.memo(({ order,country }) => {
                 >
                   {order.asin}
                 </Typography>
-                <MuiTooltip
-                  title={tooltipText}
-                  onOpen={() => handleTooltipOpen(order.asin)}
-                  arrow
+
+              {/* Copy Icon */}
+              <MuiTooltip
+                title={tooltipText}
+                onOpen={() => handleTooltipOpen(order.asin)}
+                arrow
+              >
+                <IconButton
+                  onClick={() => handleCopy(order.asin)}
+                  size="small"
+                  sx={{ 
+                    padding: '2px', 
+                    lineHeight: 1,
+                    minWidth: 'auto'
+                  }}
                 >
-                  <IconButton
-                    onClick={() => handleCopy(order.asin)}
-                    size="small"
-                    sx={{ mr: 0.5, padding: { xs: '2px', sm: '4px' } }}
-                  >
-                    <ContentCopyIcon
-                      sx={{ fontSize: { xs: "12px", sm: "14px" }, color: "#757575" }}
-                    />
-                  </IconButton>
-                </MuiTooltip>
-                <MuiTooltip
-                  title={`SKU: ${order.sellerSku}`}
-                  placement="top"
-                  arrow
+                  <ContentCopyIcon
+                    sx={{ fontSize: "12px", color: "#757575" }}
+                  />
+                </IconButton>
+              </MuiTooltip>
+
+              {/* Info Icon */}
+              <MuiTooltip
+                title={`Seller SKU: ${order.sellerSku}`}
+                placement="top"
+                arrow
+              >
+                <IconButton 
+                  size="small" 
+                  sx={{ 
+                    padding: '2px', 
+                    lineHeight: 1,
+                    minWidth: 'auto'
+                  }}
                 >
-                  <IconButton size="small" sx={{ p: { xs: 0.3, sm: 0.5 } }}>
-                    •{" "}
-                    <InfoOutlinedIcon
-                      fontSize="inherit"
-                      sx={{ 
-                        paddingLeft: "3px", 
-                        height: { xs: "14px", sm: "16px" }, 
-                        width: { xs: "14px", sm: "16px" } 
-                      }}
-                    />
-                  </IconButton>
-                </MuiTooltip>
+                  <InfoOutlinedIcon
+                    fontSize="inherit"
+                    sx={{
+                      height: "14px",
+                      width: "14px",
+                      color: "#757575"
+                    }}
+                  />
+                </IconButton>
+              </MuiTooltip>
               </Box>
+
             </Box>
           </Box>
         </Box>
@@ -294,7 +313,7 @@ const OrderCard = React.memo(({ order,country }) => {
   );
 });
 
-const LastOrders = React.memo(
+export const LastOrders = React.memo(
   ({
     country,
     marketPlaceId,
@@ -310,8 +329,7 @@ const LastOrders = React.memo(
 
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-    const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'));
-    
+
     const fetchLatestOrders = useCallback(async () => {
       try {
         setLoading(true);
@@ -397,17 +415,18 @@ const LastOrders = React.memo(
       product_id,
       manufacturer_name,
       fulfillment_channel,
+      fetchLatestOrders
     ]);
 
     return (
-      <Grid container spacing={{ xs: 2, sm: 3 }} sx={{ p: { xs: 1, sm: 2 } }}>
+      <Box sx={{ p: { xs: 1, sm: 2 } }}>
         {loading ? (
           <Box
             sx={{
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              minHeight: { xs: 200, sm: 300 },
+              minHeight: 200,
               width: "100%",
             }}
           >
@@ -415,36 +434,37 @@ const LastOrders = React.memo(
           </Box>
         ) : (
           <>
-            <Grid item xs={12} md={8}>
-              <Typography 
-                variant="h6" 
-                sx={{ fontSize: { xs: "18px", sm: "20px" } }} 
-                mb={{ xs: 1, sm: 2 }}
+            {/* Chart Section */}
+            <Box mb={2}>
+              <Typography
+                variant="h6"
+                sx={{ fontSize: "18px" }}
+                mb={1}
               >
                 {chartData.length > 0 ? "Latest Orders" : null}
               </Typography>
 
-              <Typography 
-                variant="h6" 
-                sx={{ fontSize: { xs: "12px", sm: "14px" } }} 
-                mb={{ xs: 1, sm: 2 }}
+              <Typography
+                variant="body2"
+                sx={{ fontSize: "12px", color: 'text.secondary' }}
+                mb={1}
               >
                 Showing all orders from the last 24 hours
               </Typography>
-              <Paper elevation={2} sx={{ borderRadius: 2, boxShadow: "none" }}>
+              <Box sx={{ borderRadius: 2, backgroundColor: 'white', p: 1 }}>
                 {chartData.length > 0 ? (
-                  <ResponsiveContainer 
-                    width="100%" 
-                    height={isMobile ? 250 : isTablet ? 300 : 350}
+                  <ResponsiveContainer
+                    width="100%"
+                    height={250}
                   >
-                    <BarChart 
-                      data={chartData} 
-                      barCategoryGap={isMobile ? "10%" : "20%"}
-                      margin={{ 
-                        top: 10, 
-                        right: isMobile ? 5 : 30, 
-                        left: isMobile ? -10 : 0, 
-                        bottom: 5 
+                    <BarChart
+                      data={chartData}
+                      barCategoryGap="10%"
+                      margin={{
+                        top: 10,
+                        right: 5,
+                        left: -10,
+                        bottom: 5
                       }}
                     >
                       <CartesianGrid
@@ -455,20 +475,20 @@ const LastOrders = React.memo(
 
                       <XAxis
                         dataKey="time"
-                        tick={{ fontSize: isMobile ? "10px" : "12px" }}
+                        tick={{ fontSize: "10px" }}
                         tickLine={false}
                         interval={0}
-                        angle={isMobile ? -45 : 0}
-                        textAnchor={isMobile ? "end" : "middle"}
-                        height={isMobile ? 60 : 30}
+                        angle={-45}
+                        textAnchor="end"
+                        height={60}
                         tickFormatter={(value, index) => {
                           const hour = chartData[index]?.hour;
-                          return hour % (isMobile ? 6 : 4) === 1 ? value : "";
+                          return hour % 6 === 0 ? value : "";
                         }}
                       />
 
                       <YAxis
-                        tick={{ fontSize: isMobile ? "10px" : "12px" }}
+                        tick={{ fontSize: "10px" }}
                         allowDecimals={false}
                         tickLine={false}
                         axisLine={false}
@@ -486,58 +506,47 @@ const LastOrders = React.memo(
                   <Typography
                     variant="body2"
                     color="text.secondary"
-                    sx={{ p: 2, fontSize: { xs: "12px", sm: "14px" } }}
+                    sx={{ p: 2, fontSize: "12px" }}
                   >
                     No order data available for the last 24 hours.
                   </Typography>
                 )}
-              </Paper>
-            </Grid>
+              </Box>
+            </Box>
 
-            {/* Product Cards - Right Side */}
-            <Grid item xs={12} md={4}>
+            {/* Product Cards - List Section (now below the chart) */}
+            <Box mt={2}>
               <Typography
-                sx={{ 
-                  mb: 1, 
-                  fontSize: { xs: "14px", sm: "16px" }, 
-                  color: "grey", 
-                  fontWeight: 600 
+                sx={{
+                  mb: 1,
+                  fontSize: "14px",
+                  color: "grey",
+                  fontWeight: 600
                 }}
               >
                {dayjs().tz("US/Pacific").format("MMMM D")}
               </Typography>
-              <Paper
-                elevation={2}
+              <Box
                 sx={{
-                  boxShadow: "none",
-                  maxHeight: { xs: "300px", sm: "400px" },
+                  maxHeight: "350px",
                   overflowY: "auto",
                   borderRadius: 2,
-                  "&::-webkit-scrollbar": {
-                    height: "2px",
-                    width: "2px",
-                  },
-                  "&::-webkit-scrollbar-thumb": {
-                    backgroundColor: "#888",
-                    borderRadius: "10px",
-                  },
-                  "&::-webkit-scrollbar-thumb:hover": {
-                    backgroundColor: "#555",
-                  },
-                  "&::-webkit-scrollbar-track": {
-                    backgroundColor: "#f1f1f1",
-                    borderRadius: "10px",
-                  },
+                  backgroundColor: 'white',
                 }}
               >
                {latestOrders.map((order, index) => (
-  <OrderCard key={`${order.id}-${index}`} order={order} country={country} />
-))}
-              </Paper>
-            </Grid>
+                 <OrderCard key={`${order.id}-${index}`} order={order} country={country} />
+               ))}
+               {latestOrders.length === 0 && (
+                 <Typography variant="body2" color="text.secondary" p={2} textAlign="center">
+                   No recent orders today.
+                 </Typography>
+               )}
+              </Box>
+            </Box>
           </>
         )}
-      </Grid>
+      </Box>
     );
   }
 );

@@ -1,57 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-} from "recharts";
-import { Close as CloseIcon } from "@mui/icons-material";
-import {
-  ArrowDownward,
-  ArrowUpward,
-  BorderBottom,
-  ChevronLeft,
-  ChevronRight,
-} from "@mui/icons-material";
-import CheckIcon from "@mui/icons-material/Check";
-import SettingsIcon from "@mui/icons-material/Settings"; 
-import RevenueChooseMetrics from "./RevenueChooseMetrics";
-import {
-  Tabs,
-  Tab,
-  TextField,
-  Menu,
-  Card,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  CardContent,
-  Typography,
-  Grid,
-  Box,
-  Select,
-  MenuItem,
-  IconButton,
-  FormControl,
-  InputLabel,
-  Switch,
-  Button,
-  Checkbox,
-  FormGroup,
-  FormControlLabel,
-  useTheme,
-  useMediaQuery,
-} from "@mui/material";
-import dayjs from "dayjs";
-import axios from "axios"; 
-import NoteModel from "../NoteModel";
-import { parse, format, parseISO, isValid } from "date-fns";
-import { enUS } from "date-fns/locale";
-import DottedCircleLoading from "../../../Loading/DotLoading";
-import { formatCurrency } from "../../../../utils/currencyFormatter";
+"use client"
+
+import { useState, useEffect, useMemo, useRef } from "react"
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 
 const metricColors = {
   gross_revenue: "#00b894",
@@ -62,7 +12,7 @@ const metricColors = {
   units_sold: "#000080",
   refund_amount: "#e6770d",
   refund_quantity: "#600101",
-};
+}
 
 const initialMetricConfig = [
   {
@@ -70,7 +20,6 @@ const initialMetricConfig = [
     label: "Gross Revenue",
     value: null,
     change: null,
-    isNegativeChange: false,
     color: "#00b894",
     show: false,
     isCurrency: true,
@@ -80,7 +29,6 @@ const initialMetricConfig = [
     label: "Net Profit",
     value: null,
     change: null,
-    isNegativeChange: true,
     color: "#6629b3",
     show: false,
     isCurrency: true,
@@ -90,7 +38,6 @@ const initialMetricConfig = [
     label: "Profit Margin",
     value: null,
     change: null,
-    isNegativeChange: true,
     color: "#0984e3",
     show: false,
   },
@@ -99,7 +46,6 @@ const initialMetricConfig = [
     label: "Orders",
     value: null,
     change: null,
-    isNegativeChange: true,
     color: "#f14682",
     show: false,
   },
@@ -108,7 +54,6 @@ const initialMetricConfig = [
     label: "Units Sold",
     value: null,
     change: null,
-    isNegativeChange: true,
     color: "#000080",
     show: false,
   },
@@ -117,7 +62,6 @@ const initialMetricConfig = [
     label: "Refund Amount",
     value: null,
     change: null,
-    isNegativeChange: false,
     color: "#e6770d",
     show: false,
     isCurrency: true,
@@ -127,11 +71,10 @@ const initialMetricConfig = [
     label: "Refund Quantity",
     value: null,
     change: null,
-    isNegativeChange: false,
     color: "#600101",
     show: false,
   },
-];
+]
 
 const metricLabels = {
   gross_revenue: "Gross Revenue",
@@ -142,7 +85,7 @@ const metricLabels = {
   units_sold: "Units Sold",
   refund_amount: "Refund Amount",
   refund_quantity: "Refund Quantity",
-};
+}
 
 const CompareChart = ({
   startDate,
@@ -157,64 +100,37 @@ const CompareChart = ({
   DateStartDate,
   DateEndDate,
 }) => {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const isTablet = useMediaQuery(theme.breakpoints.down('md'));
-  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  const [chartData, setChartData] = useState({})
+  const [loading, setLoading] = useState(false)
+  const [metrics, setMetrics] = useState([])
+  const [visibleMetrics, setVisibleMetrics] = useState([])
+  const [selectedValue, setSelectedValue] = useState("")
+  const [showComparisonPill, setShowComparisonPill] = useState(false)
+  const [comparisonText, setComparisonText] = useState("")
+  const [compareDropDown, setCompareDropDown] = useState({})
+  const [compareTotal, setCompareTotal] = useState({})
+  const [compareDateFilter, setCompareDateFilter] = useState("")
+  const lastParamsRef = useRef("")
 
-  const [chartData, setChartData] = useState({}); 
-  const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState(0);
-  const [compare, setCompare] = useState("Compare to past");
-  const [events, setEvents] = useState(true);
-  const [value, setValue] = useState([dayjs().startOf("month"), dayjs()]);
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [metrics, setMetrics] = useState([]);
-  const [bindGraph, setBindGraph] = useState([]);
-  const [openNote, setOpenNote] = useState(false);
-  let lastParamsRef = useRef("");
-  const [open, setOpen] = useState(false);
-  const [visibleMetrics, setVisibleMetrics] = useState([]);
-  const [showComparisonPill, setShowComparisonPill] = useState(false);
-  const [comparisonText, setComparisonText] = useState("");
-  const userData = JSON.parse(localStorage.getItem("user") || "{}");
-  const userId = userData?.id || "";
-  const [selectedStartDate, setSelectedStartDate] = useState(() => {
-    const saved = localStorage.getItem("selectedStartDate");
-    return saved ? new Date(saved) : null;
-  });
-  const [selectedEndDate, setSelectedEndDate] = useState(() => {
-    const saved = localStorage.getItem("selectedEndDate");
-    return saved ? new Date(saved) : null;
-  });
-  const [selectedValue, setSelectedValue] = useState("");
-  const [graphData, setGraphData] = useState([]);
-  const [compareGraphData, setCompareGraphData] = useState([]);
-  const [mergedGraphData, setMergedGraphData] = useState([]); 
-  const [CompareGrpah, setCompareGrpah] = useState([]);
-  const [compareFinalDate, setCompareFinalDate] = useState([]);
-  const [currentFinalDate, setCurrentFinalDate] = useState([]);
-  const [CompareDateFilter, setCompareDateFilter] = useState([]);
-  const [CompareTotal, setCompareTotal] = useState([]);
-  
+  const [selectedStartDate, setSelectedStartDate] = useState(null)
+  const [selectedEndDate, setSelectedEndDate] = useState(null)
+
   const options = [
     { key: "previous_period", label: "Previous period" },
     { key: "previous_week", label: "Previous week" },
     { key: "previous_month", label: "Previous month" },
     { key: "previous_year", label: "Previous year" },
-  ];
-
-  const handleClick = (event) => setAnchorEl(event.currentTarget);
+  ]
 
   const fetchRevenue = async () => {
-    setLoading(true);
+    setLoading(true)
     try {
-      const userData = JSON.parse(localStorage.getItem("user") || "{}");
-      const userId = userData?.id || "";
+      const userData = JSON.parse(localStorage.getItem("user") || "{}")
+      const userId = userData?.id || ""
       const payload = {
         preset: widgetData,
-        country:country,
-        marketplace_id: marketPlaceId?.id, 
+        country: country,
+        marketplace_id: marketPlaceId?.id,
         user_id: userId,
         compare_startdate: selectedStartDate,
         compare_enddate: selectedEndDate,
@@ -225,223 +141,176 @@ const CompareChart = ({
         start_date: DateStartDate,
         end_date: DateEndDate,
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-      };
-      const response = await axios.post(
-        `${process.env.REACT_APP_IP}updatedRevenueWidgetAPIView/`,
-        payload
-      );
-      const data = response.data.data;
-      setCompareDropDown(data.comapre_past);
-      setCompareTotal(data.compare_total);
-      setChartData(data?.graph);
-      // const formatCurrency = (amount) =>
-      //   `$${Number(amount || 0).toLocaleString(undefined, {
-      //     minimumFractionDigits: 2,
-      //     maximumFractionDigits: 2,
-      //   })}`;
-      const formatPercentage = (value) => `${Number(value || 0).toFixed(2)}%`;
-      const formatNumber = (value) => Number(value || 0).toLocaleString();
-      const availableMetrics = Object.keys(data.total);
+      }
+
+      const response = await fetch(`${process.env.REACT_APP_IP}updatedRevenueWidgetAPIView/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
+
+      const data = await response.json()
+      const apiData = data.data
+
+      setCompareDropDown(apiData.comapre_past || {})
+      setCompareTotal(apiData.compare_total || {})
+      setChartData(apiData?.graph || {})
+
+      const formatCurrency = (amount) =>
+        `$${Number(amount || 0).toLocaleString(undefined, {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`
+
+      const formatPercentage = (value) => `${Number(value || 0).toFixed(2)}%`
+      const formatNumber = (value) => Number(value || 0).toLocaleString()
+
+      const availableMetrics = Object.keys(apiData.total)
       const updatedMetricConfig = initialMetricConfig.map((metric) => ({
         ...metric,
         show: availableMetrics.includes(metric.id),
-      }));
+      }))
+
       setMetrics(
         updatedMetricConfig
           .filter((m) => m.show)
           .map((metric) => ({
             label: metricLabels[metric.id],
             value: metric.isCurrency
-              ? formatCurrency(data.total[metric.id],country)
+              ? formatCurrency(apiData.total[metric.id])
               : metric.isPercentage
-              ? formatPercentage(data.total[metric.id])
-              : formatNumber(data.total[metric.id]),
+                ? formatPercentage(apiData.total[metric.id])
+                : formatNumber(apiData.total[metric.id]),
             compareValue:
-              data.compare_total?.[metric.id] !== undefined
+              apiData.compare_total?.[metric.id] !== undefined
                 ? metric.isCurrency
-                  ? formatCurrency(data.compare_total[metric.id],country)
+                  ? formatCurrency(apiData.compare_total[metric.id])
                   : metric.isPercentage
-                  ? formatPercentage(data.compare_total[metric.id])
-                  : formatNumber(data.compare_total[metric.id])
+                    ? formatPercentage(apiData.compare_total[metric.id])
+                    : formatNumber(apiData.compare_total[metric.id])
                 : null,
             color: metricColors[metric.id],
-            colorCompare: metricColors[metric.id],
             id: metric.id,
             isPercentage: metric.isPercentage,
             isCurrency: metric.isCurrency,
-          }))
-      );
-      setVisibleMetrics(
-        updatedMetricConfig.filter((m) => m.show).map((m) => m.id)
-      );
+          })),
+      )
+
+      setVisibleMetrics(updatedMetricConfig.filter((m) => m.show).map((m) => m.id))
     } catch (error) {
-      console.error("Error fetching revenue data:", error);
-      setChartData({}); 
+      console.error("Error fetching revenue data:", error)
+      setChartData({})
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const formatMetricDataKey = (id) => {
-    return id.replace(/_([a-z])/g, (match, p1) => p1.toUpperCase());
-  };
+  const handleChange = (value) => {
+    setSelectedValue(value)
 
-  const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
-
-  const handleMetricToggle = (metric) => {
-    setVisibleMetrics((prev) =>
-      prev.includes(metric)
-        ? prev.filter((m) => m !== metric)
-        : [...prev, metric]
-    );
-  };
-
-  const handleReset = () => {
-    setVisibleMetrics([]);
-  };
-
-  const handleApply = () => {
-    console.log("Applied Metrics:", visibleMetrics);
-    handleClose();
-  };
-
-  const handleOpen = () => {
-    setOpen(true);
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    fetchRevenue();
-  };
-
-  const formatDate = (dateInput) => {
-    const date = new Date(dateInput); 
-    const options = { month: "short", day: "numeric" };
-    const dayMonth = date.toLocaleDateString("en-US", options);
-    const year = date.getFullYear();
-    return `${dayMonth}, ${year}`;
-  };
-
-  const handleChange = async (event) => {
-    const value = event.target.value;
-    setSelectedValue(value);
-    console.log("9999999999", value);
     if (value !== "custom") {
-      const start = compareDropDown?.[value]?.start;
-      const end = compareDropDown?.[value]?.end;
+      const start = compareDropDown?.[value]?.start
+      const end = compareDropDown?.[value]?.end
+
       if (start && end) {
-        try {
-          const parsedStart = format(
-            parse(start, "MMM dd, yyyy", new Date()),
-            "yyyy-MM-dd"
-          );
-          const parsedEnd = format(
-            parse(end, "MMM dd, yyyy", new Date()),
-            "yyyy-MM-dd"
-          );
-          setSelectedStartDate(parsedStart);
-          setSelectedEndDate(parsedEnd);
-          await fetchRevenue(parsedStart, parsedEnd);
-          const selectedOption = options.find((opt) => opt.key === value);
-          if (selectedOption) {
-            let formattedDate;
-            if (widgetData === "Today" || widgetData === "Yesterday") {
-              formattedDate = formatDate(compareDropDown?.[value]?.start);
-            } else {
-              formattedDate = formatDateRange(
-                compareDropDown?.[value]?.start,
-                compareDropDown?.[value]?.end
-              );
-            }
-            setComparisonText(` ${formattedDate}`);
-            setShowComparisonPill(true);
-          } else {
-            setShowComparisonPill(false);
-            setComparisonText("");
-          }
-        } catch (error) {
-          console.error("Error processing comparison value:", error);
-          setShowComparisonPill(false);
-          setComparisonText("");
+        setSelectedStartDate(start)
+        setSelectedEndDate(end)
+
+        const selectedOption = options.find((opt) => opt.key === value)
+        if (selectedOption) {
+          setComparisonText(`${start} - ${end}`)
+          setShowComparisonPill(true)
         }
-      } else {
-        setShowComparisonPill(false);
-        setComparisonText("");
       }
     } else if (value === "custom") {
-      setComparisonText("— Custom date range");
-      setShowComparisonPill(true);
+      setComparisonText("Custom date range")
+      setShowComparisonPill(true)
     } else {
-      setShowComparisonPill(false);
-      setComparisonText("");
+      setShowComparisonPill(false)
+      setComparisonText("")
     }
-  };
+  }
+
+  const handleMetricToggle = (metricId) => {
+    setVisibleMetrics((prev) => (prev.includes(metricId) ? prev.filter((m) => m !== metricId) : [...prev, metricId]))
+  }
+
+  const handleClosePill = () => {
+    setSelectedValue("")
+    setSelectedEndDate("")
+    setSelectedStartDate("")
+    setShowComparisonPill(false)
+    setComparisonText("")
+  }
 
   useEffect(() => {
     const currentParams = JSON.stringify({
-      value,
       country,
       widgetData,
       marketPlaceId,
       selectedEndDate,
       selectedValue,
       selectedStartDate,
-      userId,
       brand_id,
       product_id,
       manufacturer_name,
       fulfillment_channel,
       DateStartDate,
       DateEndDate,
-    });
+    })
+
     if (lastParamsRef.current !== currentParams) {
-      lastParamsRef.current = currentParams;
-      fetchRevenue();
+      lastParamsRef.current = currentParams
+      fetchRevenue()
     }
   }, [
-    value,
+    country,
     widgetData,
     marketPlaceId,
     selectedEndDate,
     selectedValue,
     selectedStartDate,
-    userId,
     brand_id,
     product_id,
     manufacturer_name,
     fulfillment_channel,
     DateStartDate,
     DateEndDate,
-    country
-  ]); 
+  ])
 
   useEffect(() => {
-    if (!chartData || Object.keys(chartData).length === 0) return;
-    const localGraphData = Object.values(chartData);
+    if (!chartData || Object.keys(chartData).length === 0) return
+
+    const localGraphData = Object.values(chartData)
     if (localGraphData.length > 0) {
-      const startDate = new Date(localGraphData[0].current_date);
-      const endDate = new Date(
-        localGraphData[localGraphData.length - 1].current_date
-      );
-      const formatShortDate = (date) =>
-        date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      const formattedStart = formatShortDate(startDate); 
-      const formattedEnd = formatShortDate(endDate); 
-      const year = endDate.getFullYear(); 
+      const startDate = new Date(localGraphData[0].current_date)
+      const endDate = new Date(localGraphData[localGraphData.length - 1].current_date)
+
+      const formatShortDate = (date) => date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+
+      const formattedStart = formatShortDate(startDate)
+      const formattedEnd = formatShortDate(endDate)
+      const year = endDate.getFullYear()
+
       const displayRange =
         widgetData === "Today" || widgetData === "Yesterday"
           ? `${formattedStart}, ${year}`
-          : `${formattedStart} - ${formattedEnd}, ${year}`;
-      setCompareDateFilter(displayRange); 
+          : `${formattedStart} - ${formattedEnd}, ${year}`
+
+      setCompareDateFilter(displayRange)
     }
-  }, [chartData, widgetData]);
+  }, [chartData, widgetData])
 
   const formattedData = useMemo(() => {
     if (!chartData || Object.keys(chartData).length === 0) {
-      return [];
+      return []
     }
+
     return Object.values(chartData).map((item) => ({
-      time: dayjs(item.current_date).format("h A"),
+      time: new Date(item.current_date).toLocaleTimeString("en-US", {
+        hour: "numeric",
+        hour12: true,
+      }),
       date: item.current_date,
       compareDate: item.compare_date,
       grossRevenue: item.gross_revenue_with_tax ?? 0,
@@ -458,949 +327,471 @@ const CompareChart = ({
       compareUnitsSold: item.compare_units_sold ?? null,
       compareRefundAmount: item.compare_refund_amount ?? null,
       compareRefundQuantity: item.compare_refund_quantity ?? null,
-    }));
-  }, [chartData]);
+    }))
+  }, [chartData])
 
-  const CustomTooltip = ({ active, payload, label }) => {
+  const CustomTooltip = ({ active, payload }) => {
     if (!active || !payload || payload.length === 0) {
-      return null;
+      return null
     }
-    const currentDataPoint = payload[0]?.payload;
-    const currentItemDate = currentDataPoint?.date;
-    const compareDateForHeader = currentDataPoint?.compareDate; 
+
+    const currentDataPoint = payload[0]?.payload
     const formatValue = (val, key) => {
       if (typeof val === "number") {
-        if (
-          key.toLowerCase().includes("margin") ||
-          key.toLowerCase() === "acos" ||
-          key.toLowerCase() === "tacos"
-        ) {
-          return `${val.toFixed(2)}%`;
+        if (key.toLowerCase().includes("margin") || key.toLowerCase() === "acos") {
+          return `${val.toFixed(2)}%`
         } else if (
           key.toLowerCase().includes("revenue") ||
           key.toLowerCase().includes("profit") ||
-          key.toLowerCase().includes("amount") ||
-          key.toLowerCase().includes("spend")
+          key.toLowerCase().includes("amount")
         ) {
-          return formatCurrency(val, country);
-        } else if (key.toLowerCase() === "roas") {
-          return val.toFixed(2); 
+          return `$${val.toLocaleString(undefined, {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+          })}`
         } else {
-          return val.toLocaleString();
+          return val.toLocaleString()
         }
       }
-      return "n/a";
-    };
-    const safeFormatDateHeader = (dateString) => {
-      if (!dateString) return "N/A";
-      const parsedDate = dayjs(dateString);
-      return parsedDate.isValid()
-        ? parsedDate.format("MMM D, h:mm A")
-        : "Invalid Date";
-    };
-    const currentData = {};
-    const compareData = {};
-    payload.forEach((item) => {
-      const isCompare = item.dataKey.startsWith("compare");
-      const key = isCompare
-        ? item.dataKey.replace("compare", "")
-        : item.dataKey;
-      const formattedKey =
-        key.charAt(0).toUpperCase() +
-        key
-          .slice(1)
-          .replace(/([A-Z])/g, " $1")
-          .trim();
-      if (isCompare) {
-        compareData[formattedKey] = item;
-      } else {
-        currentData[formattedKey] = item;
-      }
-    });
-    const orderedKeys = [
-      "Gross Revenue",
-      "Profit Margin",
-      "Net Profit",
-      "Orders",
-      "Units Sold",
-      "Refund Amount",
-      "Refund Quantity",
-    ];
-    const CompareGraph = !!compareDateForHeader;
+      return "n/a"
+    }
+
     return (
       <div
-        className="custom-tooltip bg-white p-3 border rounded shadow text-sm"
         style={{
           backgroundColor: "#fff",
-          padding: "10px",
+          padding: "12px",
           border: "1px solid #ccc",
-          minWidth: isMobile ? "280px" : "320px",
-          maxWidth: isMobile ? "95vw" : "none",
+          borderRadius: "8px",
+          fontSize: "13px",
+          maxWidth: "90vw",
         }}
       >
-        {/* Header Dates */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            fontWeight: "bold",
-            marginBottom: "8px",
-            paddingBottom: "4px",
-            borderBottom: "1px solid #eee",
-            gap: isMobile ? "10px" : "20px",
-          }}
-        >
-          <span style={{ width: isMobile ? "100px" : "130px" }}></span>
-          <span
+        {payload.map((item, index) => (
+          <div
+            key={index}
             style={{
-              color: "#485E75",
-              fontFamily: "'Nunito Sans', sans-serif",
-              fontSize: isMobile ? "12px" : "14px",
-              textAlign: "right",
-              minWidth: isMobile ? "80px" : "100px",
+              display: "flex",
+              alignItems: "center",
+              marginBottom: "4px",
             }}
           >
-            {safeFormatDateHeader(currentItemDate)}
-          </span>
-          {CompareGraph && (
             <span
               style={{
-                color: "#485E75",
-                fontFamily: "'Nunito Sans', sans-serif",
-                fontSize: isMobile ? "12px" : "14px",
-                textAlign: "right",
-                minWidth: isMobile ? "80px" : "100px",
+                display: "inline-block",
+                width: "8px",
+                height: "8px",
+                borderRadius: "50%",
+                backgroundColor: item.color,
+                marginRight: "6px",
               }}
-            >
-              {safeFormatDateHeader(compareDateForHeader)}
-            </span>
-          )}
-        </div>
-        {/* Metric Rows */}
-        {orderedKeys.map((key, index) => {
-          const currentItem = currentData[key];
-          const compareItem = compareData[key];
-          const currentValue = currentItem?.value;
-          const compareValue = compareItem?.value;
-          const color = currentItem?.color || "#000";
-          return (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "5px",
-              }}
-            >
-              {/* Label with color dot */}
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "8px",
-                  minWidth: isMobile ? "100px" : "130px",
-                }}
-              >
-                <span
-                  style={{
-                    display: "inline-block",
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    backgroundColor: color,
-                  }}
-                ></span>
-                <span
-                  style={{
-                    color: "#485E75",
-                    fontFamily: "'Nunito Sans', sans-serif",
-                    fontSize: isMobile ? "12px" : "14px",
-                  }}
-                >
-                  {key}
-                </span>
-              </div>
-              {/* Values - Container for current and compare values */}
-              <div
-                style={{
-                  display: "flex",
-                  gap: isMobile ? "10px" : "20px",
-                  justifyContent: "flex-end",
-                  flexGrow: 1,
-                }}
-              >
-                {/* Current Value */}
-                <div style={{ textAlign: "right", minWidth: isMobile ? "80px" : "100px" }}>
-                  <span
-                    style={{
-                      fontWeight: "bold",
-                      fontSize: isMobile ? "12px" : "14px",
-                      color: "#333",
-                    }}
-                  >
-                    {formatValue(currentValue, key)}
-                  </span>
-                </div>
-                {/* Compare Value — Only show if CompareGraph is active */}
-                {CompareGraph && (
-                  <div style={{ textAlign: "right", minWidth: isMobile ? "80px" : "100px" }}>
-                    <span
-                      style={{
-                        color: "#888",
-                        fontSize: isMobile ? "12px" : "14px",
-                      }}
-                    >
-                      {formatValue(compareValue, key)}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
+            ></span>
+            <span style={{ color: "#485E75", marginRight: "8px" }}>{item.name}:</span>
+            <span style={{ fontWeight: "bold", color: "#333" }}>{formatValue(item.value, item.name)}</span>
+          </div>
+        ))}
       </div>
-    );
-  };
-
-  const handleCheckboxChange = (event) => {
-    const { name, checked } = event.target;
-    setVisibleMetrics((prev) => {
-      if (checked) {
-        return [...prev, name];
-      } else {
-        return prev.filter((item) => item !== name);
-      }
-    });
-  };
-
-  const handleClosePill = () => {
-    setSelectedValue(null);
-    setSelectedEndDate("");
-    setSelectedStartDate("");
-    console.log("kav", selectedStartDate);
-    setShowComparisonPill(false);
-    setComparisonText("");
-  };
-
-  const formatDateRange = (start, end) => {
-    if (!start || !end) return "";
-    return `${start} - ${end}`;
-  };
-
-  const [compareDropDown, setCompareDropDown] = useState("Compare to past");
+    )
+  }
 
   if (loading) {
     return (
       <div
         style={{
           display: "flex",
-          justifyContent: "center", 
-          alignItems: "center", 
-          height: "50vh", 
+          justifyContent: "center",
+          alignItems: "center",
+          height: "300px",
+          fontSize: "16px",
+          color: "#666",
         }}
       >
-        <DottedCircleLoading />
+        Loading...
       </div>
-    );
+    )
   }
 
   if (formattedData.length === 0) {
     return (
-      <div className="text-center py-4">
+      <div style={{ textAlign: "center", padding: "20px", color: "#666" }}>
         No data available for the selected period.
       </div>
-    );
+    )
   }
 
   return (
-    <Box sx={{ p: isMobile ? 1 : 2 }}>
-      <Grid container spacing={isMobile ? 1 : 2} mt={isMobile ? 1 : 2}>
-        {/* Metrics Grid */}
-        <Grid
-          item
-          xs={12}
-          md={visibleMetrics.length > 0 ? 3 : 12}
-          sx={{
-            maxHeight: isMobile ? 300 : 450,
-            overflowY: "auto",
-            overflowX: "hidden",
-            pr: 1,
-            "&::-webkit-scrollbar": {
-              height: "2px",
-              width: "2px",
-            },
-            "&::-webkit-scrollbar-thumb": {
-              backgroundColor: "#888",
-              borderRadius: "10px",
-            },
-            "&::-webkit-scrollbar-thumb:hover": {
-              backgroundColor: "#555",
-            },
-            "&::-webkit-scrollbar-track": {
-              backgroundColor: "#f1f1f1",
-              borderRadius: "10px",
-            },
-          }}
-        >
-          <Box
-            sx={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "start",
+    <div style={{ padding: "16px", paddingTop: "20px" }}>
+      {/* Metrics List */}
+      <div style={{ marginBottom: "24px" }}>
+        <div style={{ marginBottom: "12px" }}>
+          <div
+            style={{
+              fontSize: "18px",
+              fontWeight: "700",
+              color: "#1a1a1a",
+              marginBottom: "4px",
             }}
           >
-            {metrics.map((metric, index) => {
-              const isSelected = visibleMetrics.includes(metric.id);
-              const isProfitMargin = metric.id === "profitMargin"; 
-              return (
-                <Card
-                  key={index}
-                  sx={{
-                    width: isMobile ? "100%" : "300px",
-                    ml: isMobile ? 0 : "-28px",
-                    p: isMobile ? 1 : 1.2,
-                    borderRadius: "10px",
-                    boxShadow: "none",
-                    cursor: "pointer",
-                    transition: "0.2s ease-in-out",
-                    "&:hover": {
-                      backgroundColor: "#f5f5f5",
-                    },
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Checkbox
-                      checked={isSelected}
-                      onChange={handleCheckboxChange}
-                      name={metric.id}
-                      sx={{
-                        p: 0.3,
-                        "& svg": {
-                          fontSize: 16,
-                        },
-                      }}
-                      icon={
-                        <span
-                          style={{
-                            width: 14,
-                            height: 14,
-                            display: "block",
-                            borderRadius: 4,
-                            border: `2px solid ${metric.color}`,
-                          }}
-                        />
-                      }
-                      checkedIcon={
-                        <span
-                          style={{
-                            width: 14,
-                            height: 14,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            borderRadius: 4,
-                            backgroundColor: metric.color,
-                            border: `2px solid ${metric.color}`,
-                            color: "#fff",
-                            fontSize: 12,
-                            fontWeight: "bold",
-                          }}
-                        >
-                          <CheckIcon sx={{ fontSize: 14 }} />
-                        </span>
-                      }
-                    />
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontSize: isMobile ? "12px" : "14px",
-                        ml: 1,
-                        color: "#485E75",
-                        fontFamily:
-                          "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif",
-                      }}
-                    >
-                      {metricLabels[metric.id]}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      ml: 3.5,
-                      mt: 1,
-                      flexDirection: isMobile ? "column" : "row",
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontSize: isMobile ? "20px" : "24px",
-                        fontWeight: 600,
-                        color: "#13191",
-                        fontFamily:
-                          "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif",
-                      }}
-                    >
-                      {metric.id === "profit_margin"
-                        ? `${Number(metric.value).toFixed(2)}%`
-                        : metric.value}
-                    </Typography>
-                    {metric.compareValue !== undefined && CompareTotal && (
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          ml: isMobile ? 0 : 1,
-                          mt: isMobile ? 0.5 : 2,
-                        }}
-                      >
-                        {(() => {
-                          const cleanCompareValue = parseFloat(
-                            String(metric.compareValue)
-                              .replace(/[$,%]/g, "")
-                              .replace(/,/g, "")
-                          );
-                          const isPositive = cleanCompareValue > 0;
-                          const isNegative = cleanCompareValue < 0;
-                          return (
-                            <Typography
-                              variant="body2"
-                              sx={{
-                                fontSize: isMobile ? "12px" : "14px",
-                                fontWeight: 500,
-                                color: isPositive
-                                  ? "green"
-                                  : isNegative
-                                  ? "#e14d2a"
-                                  : "gray",
-                                display: "flex",
-                                alignItems: "center",
-                                fontFamily:
-                                  "'Nunito Sans', -apple-system, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif",
-                              }}
-                            >
-                              {Math.abs(cleanCompareValue).toFixed(2)}%
-                              {isPositive && (
-                                <ArrowUpward
-                                  sx={{ 
-                                    color: "green", 
-                                    fontSize: isMobile ? 14 : 16, 
-                                    ml: 0.3 
-                                  }}
-                                />
-                              )}
-                              {isNegative && (
-                                <ArrowDownward
-                                  sx={{
-                                    color: "#e14d2a",
-                                    fontSize: isMobile ? 14 : 16,
-                                    ml: 0.3,
-                                  }}
-                                />
-                              )}
-                              {isProfitMargin && `%`}
-                            </Typography>
-                          );
-                        })()}
-                      </Box>
-                    )}
-                  </Box>
-                </Card>
-              );
-            })}
-            {/* <Box
-              onClick={handleOpen}
-              sx={{
-                marginTop: "-1px",
-                borderTop: "1px solid #e0e0e0",
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                cursor: "pointer",
-                p: 1,
-                height: isMobile ? "55px" : "65px",
-                fontSize: isMobile ? 12 : 14,
-                fontWeight: 600,
-                color: "#485E75",
-                width: isMobile ? "100%" : "auto",
-              }}
-            >
-              <SettingsIcon sx={{ fontSize: isMobile ? 16 : 18 }} />
-              Choose Metrics
-            </Box>
-            <Dialog 
-              open={open} 
-              onClose={handleClose} 
-              maxWidth="600"
-              fullScreen={isMobile}
-            >
-              <DialogContent dividers>
-                <RevenueChooseMetrics
-                  selectedMetrics={visibleMetrics}
-                  onChange={handleMetricToggle}
-                  onReset={handleReset}
-                  onClose={handleClose}
-                  onApply={handleApply}
-                />
-              </DialogContent>
-            </Dialog> */}
-          </Box>
-        </Grid>
+            Revenue
+          </div>
+          <div style={{ fontSize: "13px", color: "#999" }}>Compare to past</div>
+        </div>
 
-        {visibleMetrics.length > 0 && (
-          <Grid item xs={12} md={9}>
-            <Box
-              sx={{
-                display: "flex",
-                marginBottom: "10px",
-                justifyContent: "space-between",
-                alignItems: isMobile ? "flex-start" : "center",
-                flexDirection: isMobile ? "column" : "row",
-                gap: isMobile ? 2 : 0,
-              }}
-            >
-              <Box
-                sx={{
+        {/* Metrics Grid */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {metrics.map((metric, index) => {
+            const isSelected = visibleMetrics.includes(metric.id)
+            return (
+              <div
+                key={index}
+                onClick={() => handleMetricToggle(metric.id)}
+                style={{
                   display: "flex",
-                  flexDirection: "column",
-                  alignItems: isMobile ? "flex-start" : "flex-start",
-                  width: isMobile ? "100%" : "auto",
+                  alignItems: "center",
+                  padding: "12px",
+                  backgroundColor: isSelected ? "#f0f7ff" : "#fff",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  border: "1px solid #e0e0e0",
+                  transition: "all 0.2s ease",
                 }}
               >
-                <Box sx={{ 
-                  display: "flex", 
-                  alignItems: "center",
-                  width: isMobile ? "100%" : "auto"
-                }}>
-                  {!showComparisonPill ? (
-                    <Box sx={{ minWidth: isMobile ? "100%" : 160 }}>
-                      <Select
-                        fullWidth
-                        value={selectedValue}
-                        onChange={handleChange}
-                        displayEmpty
-                        sx={{
-                          border: "1px solid #cbd5e1",
-                          borderRadius: "8px",
-                          fontWeight: 500,
-                          height: 40,
-                        }}
-                        renderValue={(selected) => {
-                          if (!selected) {
-                            return "Compare to past";
-                          }
-                          const selectedOption = options.find(
-                            (opt) => opt.key === selected
-                          );
-                          return selectedOption
-                            ? selectedOption.label
-                            : "Custom";
-                        }}
-                      >
-                        {options.map((option) => (
-                          <MenuItem key={option.key} value={option.key}>
-                            <Box
-                              sx={{ display: "flex", flexDirection: "column" }}
-                            >
-                              <Typography sx={{ fontWeight: 500 }}>
-                                {option.label}
-                              </Typography>
-                              <Typography
-                                sx={{ fontSize: "12px", color: "#64748b" }}
-                              >
-                                {widgetData === "Today" ||
-                                widgetData === "Yesterday"
-                                  ? formatDate(
-                                      compareDropDown?.[option.key]?.start
-                                    )
-                                  : formatDateRange(
-                                      compareDropDown?.[option.key]?.start,
-                                      compareDropDown?.[option.key]?.end
-                                    )}
-                              </Typography>
-                            </Box>
-                          </MenuItem>
-                        ))}
-                        <MenuItem value="custom">
-                          <Box>
-                            <Typography sx={{ fontWeight: 500 }}>
-                              Select custom date range
-                            </Typography>
-                          </Box>
-                        </MenuItem>
-                      </Select>
-                    </Box>
-                  ) : (
-                    <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        backgroundColor: "#e0f2f7", 
-                        borderRadius: "20px",
-                        padding: "8px 12px",
-                        fontWeight: 500,
-                        color: "#1e88e5", 
-                        width: isMobile ? "100%" : "auto",
-                        justifyContent: "space-between",
+                {/* Checkbox */}
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => handleMetricToggle(metric.id)}
+                  style={{
+                    width: "18px",
+                    height: "18px",
+                    marginRight: "12px",
+                    cursor: "pointer",
+                    accentColor: metric.color,
+                  }}
+                />
+
+                {/* Metric Info */}
+                <div style={{ flex: 1 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      marginBottom: "4px",
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "8px",
+                        height: "8px",
+                        borderRadius: "50%",
+                        backgroundColor: metric.color,
+                        marginRight: "8px",
+                      }}
+                    ></span>
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: "#333",
                       }}
                     >
-                      <Typography
-                        sx={{ 
-                          fontSize: isMobile ? 14 : 16, 
-                          color: "rgb(43, 57, 72)",
-                          textAlign: isMobile ? "center" : "left",
-                          flex: 1
-                        }}
-                      >{`Comparing to ${
-                        options.find((opt) => opt.key === selectedValue)
-                          ?.label || "Custom period"
-                      }`}</Typography>
-                      <IconButton
-                        size="small"
-                        onClick={handleClosePill}
-                        sx={{ ml: 1 }}
-                      >
-                        <CloseIcon sx={{ fontSize: 16, color: "#757575" }} />
-                      </IconButton>
-                    </Box>
-                  )}
-                </Box>
-                {selectedValue && (
-                  <Box sx={{ 
-                    mt: 1, 
-                    ml: isMobile ? 0 : 1,
-                    width: isMobile ? "100%" : "auto"
-                  }}>
-                    <Typography sx={{ 
-                      fontSize: isMobile ? "14px" : "16px", 
-                      color: "#485E75",
-                      textAlign: isMobile ? "center" : "left"
-                    }}>
-                      {CompareDateFilter} {" \u00A0 ... \u00A0 "}{" "}
-                      {comparisonText}
-                    </Typography>
-                  </Box>
-                )}
-              </Box>
-              {/* Add Note and Events */}
-              <Box
-                display="flex"
-                justifyContent={isMobile ? "space-between" : "flex-end"}
-                alignItems="center"
-                gap={2}
-                width={isMobile ? "100%" : "auto"}
-                mt={isMobile ? 1 : 0}
-              >
-                {/* <Typography
-                  variant="body2"
-                  sx={{ 
-                    fontSize: isMobile ? "12px" : "14px", 
-                    lineHeight: 1 
-                  }}
-                >
-                  Events
-                </Typography>
-                <Switch
-                  checked={events}
-                  onChange={() => setEvents(!events)}
-                  size="small"
-                /> */}
-                {/* {events && (
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    sx={{
-                      fontSize: isMobile ? "12px" : "14px",
-                      textTransform: "none",
-                      padding: "4px 12px",
-                      color: "black",
-                      borderColor: "black",
-                      minWidth: "auto",
+                      {metric.label}
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "16px",
+                      fontWeight: "700",
+                      color: "#000",
+                      marginLeft: "16px",
                     }}
-                    onClick={() => setOpenNote(true)}
                   >
-                    + Add Note
-                  </Button>
-                )} */}
-              </Box>
-              <NoteModel 
-                open={openNote} 
-                onClose={() => setOpenNote(false)} 
-                fullScreen={isMobile}
+                    {metric.value}
+                  </div>
+                </div>
+
+                {/* Compare Value */}
+                {metric.compareValue && (
+                  <div style={{ textAlign: "right", marginLeft: "12px" }}>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#666",
+                        marginBottom: "2px",
+                      }}
+                    >
+                      Compare
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: "600",
+                        color: metric.compareValue > 0 ? "#00b894" : "#e14d2a",
+                      }}
+                    >
+                      {metric.compareValue}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Comparison Selector */}
+      {visibleMetrics.length > 0 && (
+        <div style={{ marginBottom: "16px" }}>
+          {!showComparisonPill ? (
+            <select
+              value={selectedValue}
+              onChange={(e) => handleChange(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                border: "1px solid #cbd5e1",
+                borderRadius: "8px",
+                fontSize: "14px",
+                fontWeight: "500",
+                color: "#333",
+                backgroundColor: "#fff",
+                cursor: "pointer",
+              }}
+            >
+              <option value="">Compare to past</option>
+              {options.map((option) => (
+                <option key={option.key} value={option.key}>
+                  {option.label}
+                </option>
+              ))}
+              <option value="custom">Custom date range</option>
+            </select>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                backgroundColor: "#e0f2f7",
+                borderRadius: "20px",
+                padding: "10px 16px",
+                fontSize: "14px",
+                color: "#1e88e5",
+              }}
+            >
+              <span>Comparing to {comparisonText}</span>
+              <button
+                onClick={handleClosePill}
+                style={{
+                  background: "none",
+                  border: "none",
+                  fontSize: "18px",
+                  cursor: "pointer",
+                  color: "#999",
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Chart */}
+      {visibleMetrics.length > 0 && (
+        <div style={{ marginTop: "24px", backgroundColor: "#fafafa", padding: "12px", borderRadius: "8px" }}>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={formattedData} margin={{ top: 5, right: 10, left: -20, bottom: 5 }}>
+              <XAxis
+                dataKey="date"
+                tickFormatter={(value) => {
+                  const date = new Date(value)
+                  return date.toLocaleTimeString("en-US", {
+                    hour: "numeric",
+                    hour12: true,
+                  })
+                }}
+                tick={{ fontSize: 11 }}
               />
-            </Box>
-            <ResponsiveContainer width="100%" height={isMobile ? 300 : 500}>
-              <LineChart data={formattedData}>
-                <XAxis
-                  dataKey="date"
-                  padding={{ left: 10, right: 10 }}
-                  tickFormatter={(value) => {
-                    const isPresentSingleDay=widgetData==='Today' || widgetData ==='Yesterday'
-                    const isCustomSingleDay=DateStartDate && DateEndDate && 
-                    dayjs(DateStartDate).format("YYYY-MM-DD")===dayjs(DateEndDate).format("YYYY-MM-DD")
-                    if (isPresentSingleDay || isCustomSingleDay) {
-                      return dayjs(value).format("h:mm A").toLowerCase(); 
-                    } else {
-                      return dayjs(value).format("MMM D"); 
-                    }
-                  }}
-                  tick={{ fontSize: isMobile ? 10 : 12 }}
-                />
-                {/* Left axis (default, always needed) */}
-                <YAxis
-                  yAxisId="left"
-                  hide={false}
-                  style={{
-                    fontSize: isMobile ? "10px" : "12px",
-                    fontFamily: "'Nunito Sans', sans-serif",
-                    color: "#485E75",
-                  }}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => {
-                    const firstCurrency = metrics.find(
-                      (m) => visibleMetrics.includes(m.id) && m.isCurrency
-                    );
-                    const firstNonCurrency = metrics.find(
-                      (m) =>
-                        visibleMetrics.includes(m.id) &&
-                        !m.isCurrency &&
-                        !m.isPercentage
-                    );
-                    if (firstCurrency)
-                      return formatCurrency(value, country);
-                    if (firstNonCurrency) return Number(value).toLocaleString();
-                    return value;
-                  }}
-                  domain={["auto", "auto"]}
-                />
-                <YAxis
-                  yAxisId="right-percentage"
-                  orientation="right"
-                  hide={
-                    !visibleMetrics.some((m) =>
-                      ["profit_margin", "compare_profit_margin"].includes(m)
-                    )
-                  }
-                  style={{
-                    fontSize: isMobile ? "10px" : "12px",
-                    fontFamily: "'Nunito Sans', sans-serif",
-                    color: metricColors.profit_margin,
-                  }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(value) => `${Math.round(value)}%`}
-                  domain={["auto", "auto"]}
-                />
-                <YAxis
-                  yAxisId="right-number"
-                  orientation="right"
-                  hide={
-                    !visibleMetrics.some((m) =>
-                      [
-                        "orders",
-                        "units_sold",
-                        "refund_amount",
-                        "refund_quantity",
-                        "compare_orders",
-                        "compare_units_sold",
-                        "compare_refund_amount",
-                        "compare_refund_quantity",
-                      ].includes(m)
-                    )
-                  }
-                  style={{
-                    fontSize: isMobile ? "10px" : "12px",
-                    fontFamily: "'Nunito Sans', sans-serif",
-                    color: "#485E75",
-                  }}
-                  tickLine={false}
-                  axisLine={true}
-                  domain={["auto", "auto"]}
-                />
-                {/* Pass a function to the content prop of Tooltip */}
-                <Tooltip content={<CustomTooltip />} />
-                {visibleMetrics.includes("gross_revenue") && (
+              <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} />
+              <Tooltip content={<CustomTooltip />} />
+
+              {/* Render lines for visible metrics */}
+              {visibleMetrics.includes("gross_revenue_with_tax") && (
+                <>
                   <Line
-                    type="monotone"
-                    dataKey="compareGrossRevenue"
-                    dot={false}
-                    stroke={metricColors.gross_revenue}
-                    strokeWidth={2}
-                    name={`Compare ${metricLabels.gross_revenue}`}
-                    strokeDasharray="5 5"
                     yAxisId="left"
-                  />
-                )}
-                {visibleMetrics.includes("profit_margin") && (
-                  <Line
-                    type="monotone"
-                    dataKey="profitMargin"
-                    dot={false}
-                    stroke={metricColors.profit_margin}
-                    strokeWidth={2}
-                    name={metricLabels.profit_margin}
-                    yAxisId="right-percentage"
-                  />
-                )}
-                {visibleMetrics.includes("gross_revenue_with_tax") && (
-                  <Line
                     type="monotone"
                     dataKey="grossRevenue"
-                    dot={false}
                     stroke={metricColors.gross_revenue_with_tax}
+                    dot={false}
                     strokeWidth={2}
-                    name={metricLabels.gross_revenue_with_tax}
-                    yAxisId="left"
+                    name="Gross Revenue"
                   />
-                )}
-                {/* Optional: add comparison lines */}
-                {visibleMetrics.includes("gross_revenue_with_tax") && (
                   <Line
+                    yAxisId="left"
                     type="monotone"
                     dataKey="compareGrossRevenue"
-                    dot={false}
-                    strokeDasharray="5 5"
                     stroke={metricColors.gross_revenue_with_tax}
-                    strokeWidth={2}
-                    name={`Compare ${metricLabels.gross_revenue_with_tax}`}
-                    yAxisId="left"
-                  />
-                )}
-                {visibleMetrics.includes("profit_margin") && (
-                  <Line
-                    type="monotone"
-                    dataKey="compareProfitMargin"
                     dot={false}
+                    strokeWidth={2}
                     strokeDasharray="5 5"
-                    name={`Compare ${metricLabels.profit_margin}`}
-                    yAxisId="right-percentage"
+                    name="Compare Gross Revenue"
                   />
-                )}
-                {visibleMetrics.includes("net_profit") && (
+                </>
+              )}
+
+              {visibleMetrics.includes("net_profit") && (
+                <>
                   <Line
+                    yAxisId="left"
                     type="monotone"
                     dataKey="netProfit"
-                    dot={false}
                     stroke={metricColors.net_profit}
+                    dot={false}
                     strokeWidth={2}
-                    name={metricLabels.net_profit}
-                    yAxisId="left"
+                    name="Net Profit"
                   />
-                )}
-                {visibleMetrics.includes("net_profit") && (
                   <Line
+                    yAxisId="left"
                     type="monotone"
                     dataKey="compareNetProfit"
-                    dot={false}
-                    strokeDasharray="5 5"
                     stroke={metricColors.net_profit}
+                    dot={false}
                     strokeWidth={2}
-                    name={`Compare ${metricLabels.net_profit}`}
-                    yAxisId="left"
+                    strokeDasharray="5 5"
+                    name="Compare Net Profit"
                   />
-                )}
-                {visibleMetrics.includes("orders") && (
+                </>
+              )}
+
+              {visibleMetrics.includes("profit_margin") && (
+                <>
                   <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="profitMargin"
+                    stroke={metricColors.profit_margin}
+                    dot={false}
+                    strokeWidth={2}
+                    name="Profit Margin"
+                  />
+                  <Line
+                    yAxisId="right"
+                    type="monotone"
+                    dataKey="compareProfitMargin"
+                    stroke={metricColors.profit_margin}
+                    dot={false}
+                    strokeWidth={2}
+                    strokeDasharray="5 5"
+                    name="Compare Profit Margin"
+                  />
+                </>
+              )}
+
+              {visibleMetrics.includes("orders") && (
+                <>
+                  <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="orders"
-                    dot={false}
                     stroke={metricColors.orders}
+                    dot={false}
                     strokeWidth={2}
-                    name={metricLabels.orders}
-                    yAxisId="right-number"
+                    name="Orders"
                   />
-                )}
-                {visibleMetrics.includes("orders") && (
                   <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="compareOrders"
-                    dot={false}
-                    strokeDasharray="5 5"
                     stroke={metricColors.orders}
+                    dot={false}
                     strokeWidth={2}
-                    name={`Compare ${metricLabels.orders}`}
-                    yAxisId="right-percentage"
+                    strokeDasharray="5 5"
+                    name="Compare Orders"
                   />
-                )}
-                {visibleMetrics.includes("units_sold") && (
+                </>
+              )}
+
+              {visibleMetrics.includes("units_sold") && (
+                <>
                   <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="unitsSold"
-                    dot={false}
                     stroke={metricColors.units_sold}
+                    dot={false}
                     strokeWidth={2}
-                    name={metricLabels.units_sold}
-                    yAxisId="right-number"
+                    name="Units Sold"
                   />
-                )}
-                {visibleMetrics.includes("units_sold") && (
                   <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="compareUnitsSold"
-                    dot={false}
-                    strokeDasharray="5 5"
                     stroke={metricColors.units_sold}
+                    dot={false}
                     strokeWidth={2}
-                    name={`Compare ${metricLabels.units_sold}`}
-                    yAxisId="right-number"
+                    strokeDasharray="5 5"
+                    name="Compare Units Sold"
                   />
-                )}
-                {visibleMetrics.includes("refund_amount") && (
+                </>
+              )}
+
+              {visibleMetrics.includes("refund_amount") && (
+                <>
                   <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="refundAmount"
-                    dot={false}
                     stroke={metricColors.refund_amount}
+                    dot={false}
                     strokeWidth={2}
-                    name={metricLabels.refund_amount}
-                    yAxisId="right-number"
+                    name="Refund Amount"
                   />
-                )}
-                {visibleMetrics.includes("refund_amount") && (
                   <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="compareRefundAmount"
-                    dot={false}
-                    strokeDasharray="5 5"
                     stroke={metricColors.refund_amount}
+                    dot={false}
                     strokeWidth={2}
-                    name={`Compare ${metricLabels.refund_amount}`}
-                    yAxisId="right-number"
+                    strokeDasharray="5 5"
+                    name="Compare Refund Amount"
                   />
-                )}
-                {visibleMetrics.includes("refund_quantity") && (
+                </>
+              )}
+
+              {visibleMetrics.includes("refund_quantity") && (
+                <>
                   <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="refundQuantity"
-                    dot={false}
                     stroke={metricColors.refund_quantity}
+                    dot={false}
                     strokeWidth={2}
-                    name={metricLabels.refund_quantity}
-                    yAxisId="right-number"
+                    name="Refund Quantity"
                   />
-                )}
-                {visibleMetrics.includes("refund_quantity") && (
                   <Line
+                    yAxisId="right"
                     type="monotone"
                     dataKey="compareRefundQuantity"
-                    dot={false}
-                    strokeDasharray="5 5"
                     stroke={metricColors.refund_quantity}
+                    dot={false}
                     strokeWidth={2}
-                    name={`Compare ${metricLabels.refund_quantity}`}
-                    yAxisId="right-number"
+                    strokeDasharray="5 5"
+                    name="Compare Refund Quantity"
                   />
-                )}
-              </LineChart>
-            </ResponsiveContainer>
-          </Grid>
-        )}
-      </Grid>
-    </Box>
-  );
-};
+                </>
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </div>
+  )
+}
 
-export default CompareChart;
+export default CompareChart
