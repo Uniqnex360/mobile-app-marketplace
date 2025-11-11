@@ -21,9 +21,6 @@
       "autoIncrement": true,
       "android": {
         "image": "latest"
-      },
-      "env": {
-        "EAS_BUILD_POST_INSTALL_COMMAND": "./scripts/eas-build-post-install.sh"
       }
     }
   },

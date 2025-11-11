@@ -41,6 +41,7 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
+    "postinstall": "npx cap sync android || true",
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
