@@ -20,7 +20,8 @@
     "production": {
       "autoIncrement": true,
       "android": {
-        "image": "latest"
+        "image": "latest",
+        "prebuildCommand": "npm install && npx cap sync android"
       }
     }
   },
