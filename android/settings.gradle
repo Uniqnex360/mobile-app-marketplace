@@ -1,20 +1,5 @@
 include ':app'
-
-// Only include capacitor-cordova-android-plugins if it exists
-def capacitorPluginsDir = new File(settingsDir, 'capacitor-cordova-android-plugins')
-if (capacitorPluginsDir.exists()) {
-    include ':capacitor-cordova-android-plugins'
-    project(':capacitor-cordova-android-plugins').projectDir = capacitorPluginsDir
-}
+include ':capacitor-cordova-android-plugins'
+project(':capacitor-cordova-android-plugins').projectDir = new File('./capacitor-cordova-android-plugins/')
 
 apply from: 'capacitor.settings.gradle'
-
-gradle.beforeProject { project ->
-    if (project.plugins.hasPlugin('java') || project.plugins.hasPlugin('java-library') ||
-        project.plugins.hasPlugin('android') || project.plugins.hasPlugin('android-library')) {
-        project.tasks.withType(JavaCompile).configureEach {
-            options.sourceCompatibility = JavaVersion.VERSION_17
-            options.targetCompatibility = JavaVersion.VERSION_17
-        }
-    }
-}

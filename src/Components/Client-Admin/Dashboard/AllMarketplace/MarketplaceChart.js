@@ -105,7 +105,7 @@ export default function MarketplaceChart({ marketplaceList }) {
         Margin % by Channel
       </Typography>
       <Box sx={{ flex: 1, minHeight: 0 }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="10z0%" height="100%">
           <BarChart
             data={sortedData}
             layout="vertical"

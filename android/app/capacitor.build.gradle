@@ -2,23 +2,12 @@
 
 android {
   compileOptions {
-      sourceCompatibility JavaVersion.VERSION_17
-      targetCompatibility JavaVersion.VERSION_17
+      sourceCompatibility JavaVersion.VERSION_21
+      targetCompatibility JavaVersion.VERSION_21
   }
 }
 
-def cordovaVariablesFile = file("../capacitor-cordova-android-plugins/cordova.variables.gradle")
-if (cordovaVariablesFile.exists()) {
-    apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
-} else {
-    println "WARNING: cordova.variables.gradle not found, skipping..."
-    ext {
-        cdvMinSdkVersion = 23
-        cdvPluginPostBuildExtras = []
-        cordovaConfig = [:]
-    }
-}
-
+apply from: "../capacitor-cordova-android-plugins/cordova.variables.gradle"
 dependencies {
 
 
