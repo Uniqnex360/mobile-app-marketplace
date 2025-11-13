@@ -1,4 +1,4 @@
-name: Build iOS IPA
+name: Build iOS
 on: [push]
 
 jobs:
@@ -9,11 +9,20 @@ jobs:
     - uses: actions/setup-node@v3
       with:
         node-version: '18'
+        cache: 'npm'
+    
     - name: Install dependencies
-      run: npm install
-    - name: Sync iOS
-      run: npx cap sync ios
-    - name: Build iOS IPA
       run: |
-        cd ios
-        xcodebuild -workspace App.xcworkspace -scheme App -destination 'generic/platform=iOS' -configuration Release CODE_SIGNING_ALLOWED=NO
+        npm ci
+        npx cap sync ios
+        
+    - name: Install CocoaPods dependencies
+      run: |
+        cd ios/App
+        sudo gem install cocoapods
+        pod install
+        
+    - name: Build iOS app
+      run: |
+        cd ios/App
+        xcodebuild build -workspace App.xcworkspace -scheme App -destination 'generic/platform=iOS' -configuration Debug CODE_SIGNING_ALLOWED=NO
